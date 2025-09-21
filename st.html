@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>PARADISE Staff Dashboard</title>
+<style>
+  body{
+    margin:0;
+    font-family:Inter,sans-serif;
+    background:#050614;
+    color:#e6eef8;
+    padding:24px;
+  }
+  h1{color:#8b5cf6;margin-bottom:12px;}
+  .notifications{
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+    max-width:600px;
+  }
+  .notif{
+    background:#0f1115;
+    padding:12px;
+    border:1px solid #555;
+    border-radius:8px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:12px;
+  }
+  .notif button{
+    padding:6px 12px;
+    border:none;
+    border-radius:8px;
+    background:#8b5cf6;
+    color:#061018;
+    cursor:pointer;
+  }
+  .status{
+    font-size:12px;
+    color:#9aa0b4;
+  }
+</style>
+</head>
+<body>
+
+<h1>Staff Dashboard — Live Tickets</h1>
+<div class="notifications" id="notifContainer">
+  <!-- Notifications will appear here -->
+</div>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script>
+  // Firebase config — replace with your project values
+  const firebaseConfig = {
+    apiKey: "PASTE_YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+    databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_PROJECT_ID.appspot.com",
+    messagingSenderId: "XXXX",
+    appId: "YOUR_APP_ID"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+
+  const notifContainer = document.getElementById('notifContainer');
+
+  // Listen for tickets
+  const ticketsRef = db.ref('tickets');
+  ticketsRef.on('value', snapshot=>{
+    const data = snapshot.val() || {};
+    notifContainer.innerHTML = ''; // clear old notifications
+
+    Object.entries(data).forEach(([ticketId, ticket])=>{
+      if(ticket.status==='open'){
+        const div = document.createElement('div');
+        div.className = 'notif';
+        div.innerHTML = `
+          <div>
+            <div><b>${ticket.user || 'Anonymous'}</b> opened a ticket</div>
+            <div class="status">Last activity: ${new Date(ticket.lastActivity).toLocaleTimeString()}</div>
+          </div>
+        `;
+        const btn = document.createElement('button');
+        btn.innerText = 'View Ticket';
+        btn.onclick = ()=>window.open('/ticket.html?ticketId='+ticketId, '_blank');
+        div.appendChild(btn);
+        notifContainer.appendChild(div);
+      }
+    });
+  });
+</script>
+</body>
+</html>
