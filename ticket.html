@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>PARADISE Ticket</title>
+<style>
+  body{margin:0;font-family:Inter,sans-serif;background:#050614;color:#e6eef8;display:flex;flex-direction:column;align-items:center;padding:24px;}
+  h1{color:#8b5cf6;} .messages{margin-top:18px;width:100%;max-width:500px;border:1px solid #555;border-radius:8px;padding:12px;height:300px;overflow-y:auto;background:#0f1115;}
+  .msg{padding:6px;border-bottom:1px solid #333;} input{padding:8px;margin:4px;border-radius:6px;border:1px solid #555;background:#0f1115;color:#fff;width:220px;}
+  button{padding:10px 18px;margin:6px;border:none;border-radius:10px;background:#8b5cf6;color:#061018;cursor:pointer;}
+</style>
+</head>
+<body>
+
+<h1>Ticket</h1>
+<div><span id="ticketStatus">Loading...</span></div>
+<div class="messages" id="messages"></div>
+
+<input id="msgUser" placeholder="Your Name" />
+<input id="msgText" placeholder="Message" />
+<button id="sendMsg">Send</button>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script>
+  // Firebase config
+  const firebaseConfig = {
+    apiKey: "AIzaSyAWqZClZUwdAoiRXNlWDWFdx2ggrmxdWSE",
+    authDomain: "paradise-community.firebaseapp.com",
+    databaseURL: "https://paradise-community-default-rtdb.firebaseio.com/",
+    projectId: "paradise-community",
+    storageBucket: "paradise-community.firebasestorage.app",
+    messagingSenderId: "967977031344",
+    appId: "1:967977031344:web:6408921ddbd62559f84d75"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const ticketId = urlParams.get('ticketId');
+  const ticketRef = db.ref('tickets/' + ticketId);
+
+  const messagesEl = document.getElementById('messages');
+  const statusEl = document.getElementById('ticketStatus');
+  const sendBtn = document.getElementById('sendMsg');
+  const msgUserEl = document.getElementById('msgUser');
+  const msgTextEl = document.getElementById('msgText');
+
+  function renderMessages(data){
+    messagesEl.innerHTML = '';
+    if(!data) return;
+    const msgs = data.messages || {};
+    Object.entries(msgs).sort((a,b)=>a[1].timestamp-b[1].timestamp).forEach(([id, m])=>{
+      const div = document.createElement('div'); div.className='msg';
+      const time = new Date(m.timestamp).toLocaleTimeString();
+      div.innerHTML=`<b>${m.user}</b> [${time}]: ${m.text}`;
+      messagesEl.appendChild(div);
+    });
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  ticketRef.on('value', snapshot=>{
+    const data = snapshot.val();
+    if(!data){ alert('Ticket not found'); return; }
+    statusEl.innerText = 'Status: ' + data.status;
+    renderMessages(data);
+
+    // Auto-close inactive tickets (10 min)
+    const now = Date.now();
+    if(data.status==='open' && now - data.lastActivity > 10*60*1000){
+      ticketRef.update({ status:'closed' });
+      alert('Ticket closed due to inactivity.');
+    }
+  });
+
+  sendBtn.addEventListener('click', ()=>{
+    const user = msgUserEl.value.trim();
+    const text = msgTextEl.value.trim();
+    if(!user || !text) return;
+    const msgId = 'msg_' + Date.now();
+    ticketRef.child('messages/' + msgId).set({
+      user: user,
+      text: text,
+      timestamp: Date.now()
+    });
+    ticketRef.update({ lastActivity: Date.now(), status: 'open' });
+    msgTextEl.value='';
+  });
+</script>
+</body>
+</html>
