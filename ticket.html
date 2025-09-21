@@ -1,32 +1,38 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>PARADISE Ticket</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Paradise Ticket</title>
 <style>
-  body{margin:0;font-family:Inter,sans-serif;background:#050614;color:#e6eef8;display:flex;flex-direction:column;align-items:center;padding:24px;}
-  h1{color:#8b5cf6;} .messages{margin-top:18px;width:100%;max-width:500px;border:1px solid #555;border-radius:8px;padding:12px;height:300px;overflow-y:auto;background:#0f1115;}
-  .msg{padding:6px;border-bottom:1px solid #333;} input{padding:8px;margin:4px;border-radius:6px;border:1px solid #555;background:#0f1115;color:#fff;width:220px;}
-  button{padding:10px 18px;margin:6px;border:none;border-radius:10px;background:#8b5cf6;color:#061018;cursor:pointer;}
+body{font-family:sans-serif;background:#050614;color:white;padding:20px;display:flex;flex-direction:column;align-items:center;}
+#status{margin-bottom:20px;font-size:18px;}
+#messages{width:100%;max-width:600px;background:#0f0f1f;padding:12px;border-radius:10px;min-height:300px;overflow-y:auto;margin-bottom:12px;}
+.message{padding:8px 10px;margin-bottom:6px;border-radius:8px;background:#111217;}
+.message.staff{background:#7c3aed;color:white;}
+.message.user{background:#06b6d4;color:white;}
+input,button{padding:10px;border-radius:6px;border:none;}
+input{flex:1;margin-right:6px;background:#111217;color:white;}
+#sendBtn{background:#7c3aed;color:white;cursor:pointer;}
+#inputWrapper{display:flex;width:100%;max-width:600px;}
 </style>
 </head>
 <body>
 
-<h1>Ticket</h1>
-<div><span id="ticketStatus">Loading...</span></div>
-<div class="messages" id="messages"></div>
-
-<input id="msgUser" placeholder="Your Name" />
-<input id="msgText" placeholder="Message" />
-<button id="sendMsg">Send</button>
+<h1>Paradise Ticket</h1>
+<div id="status">Loading ticket...</div>
+<div id="messages"></div>
+<div id="inputWrapper">
+<input type="text" id="msgInput" placeholder="Type your message..." />
+<button id="sendBtn">Send</button>
+</div>
 
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script>
-  // Firebase config
-  const firebaseConfig = {
+// Firebase config
+const firebaseConfig = {
     apiKey: "AIzaSyAWqZClZUwdAoiRXNlWDWFdx2ggrmxdWSE",
     authDomain: "paradise-community.firebaseapp.com",
     databaseURL: "https://paradise-community-default-rtdb.firebaseio.com/",
@@ -34,60 +40,64 @@
     storageBucket: "paradise-community.firebasestorage.app",
     messagingSenderId: "967977031344",
     appId: "1:967977031344:web:6408921ddbd62559f84d75"
-  };
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.database();
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
 
-  const urlParams = new URLSearchParams(window.location.search);
-  const ticketId = urlParams.get('ticketId');
-  const ticketRef = db.ref('tickets/' + ticketId);
+// Utils
+function getTicketId(){
+    const params = new URLSearchParams(window.location.search);
+    return params.get('id');
+}
 
-  const messagesEl = document.getElementById('messages');
-  const statusEl = document.getElementById('ticketStatus');
-  const sendBtn = document.getElementById('sendMsg');
-  const msgUserEl = document.getElementById('msgUser');
-  const msgTextEl = document.getElementById('msgText');
+// Elements
+const statusEl = document.getElementById('status');
+const messagesEl = document.getElementById('messages');
+const inputEl = document.getElementById('msgInput');
+const sendBtn = document.getElementById('sendBtn');
 
-  function renderMessages(data){
-    messagesEl.innerHTML = '';
-    if(!data) return;
-    const msgs = data.messages || {};
-    Object.entries(msgs).sort((a,b)=>a[1].timestamp-b[1].timestamp).forEach(([id, m])=>{
-      const div = document.createElement('div'); div.className='msg';
-      const time = new Date(m.timestamp).toLocaleTimeString();
-      div.innerHTML=`<b>${m.user}</b> [${time}]: ${m.text}`;
-      messagesEl.appendChild(div);
-    });
+let ticketId = getTicketId();
+if(!ticketId){ statusEl.innerText="Invalid ticket URL"; document.getElementById('inputWrapper').style.display='none'; }
+
+// Render messages
+function renderMessage(msg){
+    const div = document.createElement('div');
+    div.className = 'message ' + (msg.sender==='staff'?'staff':'user');
+    div.innerText = msg.text;
+    messagesEl.appendChild(div);
     messagesEl.scrollTop = messagesEl.scrollHeight;
-  }
+}
 
-  ticketRef.on('value', snapshot=>{
-    const data = snapshot.val();
-    if(!data){ alert('Ticket not found'); return; }
-    statusEl.innerText = 'Status: ' + data.status;
-    renderMessages(data);
+// Load ticket and listen for updates
+const ticketRef = db.ref('tickets/'+ticketId);
+ticketRef.on('value', snapshot=>{
+    const t = snapshot.val();
+    if(!t){ statusEl.innerText="Ticket not found"; inputEl.disabled=true; sendBtn.disabled=true; return; }
+    statusEl.innerText = `Ticket Status: ${t.status.toUpperCase()}`;
+    if(t.status==='closed'){ inputEl.disabled=true; sendBtn.disabled=true; }
+});
 
-    // Auto-close inactive tickets (10 min)
-    const now = Date.now();
-    if(data.status==='open' && now - data.lastActivity > 10*60*1000){
-      ticketRef.update({ status:'closed' });
-      alert('Ticket closed due to inactivity.');
-    }
-  });
+// Messages
+const msgsRef = db.ref('tickets/'+ticketId+'/messages');
+msgsRef.on('value', snapshot=>{
+    messagesEl.innerHTML='';
+    const msgs = snapshot.val() || {};
+    Object.values(msgs).forEach(renderMessage);
+});
 
-  sendBtn.addEventListener('click', ()=>{
-    const user = msgUserEl.value.trim();
-    const text = msgTextEl.value.trim();
-    if(!user || !text) return;
-    const msgId = 'msg_' + Date.now();
-    ticketRef.child('messages/' + msgId).set({
-      user: user,
-      text: text,
-      timestamp: Date.now()
-    });
-    ticketRef.update({ lastActivity: Date.now(), status: 'open' });
-    msgTextEl.value='';
-  });
+// Send message
+sendBtn.addEventListener('click', sendMessage);
+inputEl.addEventListener('keypress', e=>{ if(e.key==='Enter') sendMessage(); });
+
+function sendMessage(){
+    const text = inputEl.value.trim();
+    if(!text) return;
+    const msgData = {text, sender:'user', ts:Date.now()};
+    const newMsgRef = msgsRef.push();
+    newMsgRef.set(msgData);
+    ticketRef.update({lastUpdated:Date.now()}); // update last activity for auto-close
+    inputEl.value='';
+}
 </script>
 </body>
 </html>
