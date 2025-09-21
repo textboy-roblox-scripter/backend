@@ -1,61 +1,25 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>PARADISE Staff Dashboard</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Staff Tickets</title>
 <style>
-  body{
-    margin:0;
-    font-family:Inter,sans-serif;
-    background:#050614;
-    color:#e6eef8;
-    padding:24px;
-  }
-  h1{color:#8b5cf6;margin-bottom:12px;}
-  .notifications{
-    display:flex;
-    flex-direction:column;
-    gap:12px;
-    max-width:600px;
-  }
-  .notif{
-    background:#0f1115;
-    padding:12px;
-    border:1px solid #555;
-    border-radius:8px;
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    gap:12px;
-  }
-  .notif button{
-    padding:6px 12px;
-    border:none;
-    border-radius:8px;
-    background:#8b5cf6;
-    color:#061018;
-    cursor:pointer;
-  }
-  .status{
-    font-size:12px;
-    color:#9aa0b4;
-  }
+body{font-family:sans-serif;background:#050614;color:white;padding:20px;}
+.ticket{padding:12px;margin:8px 0;border:1px solid #7c3aed;border-radius:8px;display:flex;justify-content:space-between;align-items:center;}
+button{padding:6px 12px;background:#7c3aed;border:none;color:white;border-radius:6px;cursor:pointer;}
 </style>
 </head>
 <body>
-
-<h1>Staff Dashboard — Live Tickets</h1>
-<div class="notifications" id="notifContainer">
-  <!-- Notifications will appear here -->
-</div>
+<h1>Staff Ticket Dashboard</h1>
+<div id="ticketList"></div>
 
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script>
-  // Firebase config — replace with your project values
-  const firebaseConfig = {
+// Firebase config
+const firebaseConfig = {
     apiKey: "AIzaSyAWqZClZUwdAoiRXNlWDWFdx2ggrmxdWSE",
     authDomain: "paradise-community.firebaseapp.com",
     databaseURL: "https://paradise-community-default-rtdb.firebaseio.com/",
@@ -63,36 +27,31 @@
     storageBucket: "paradise-community.firebasestorage.app",
     messagingSenderId: "967977031344",
     appId: "1:967977031344:web:6408921ddbd62559f84d75"
-  };
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.database();
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
 
-  const notifContainer = document.getElementById('notifContainer');
+const ticketList = document.getElementById('ticketList');
 
-  // Listen for tickets
-  const ticketsRef = db.ref('tickets');
-  ticketsRef.on('value', snapshot=>{
-    const data = snapshot.val() || {};
-    notifContainer.innerHTML = ''; // clear old notifications
+// Listen for tickets
+db.ref('tickets').on('value', snapshot=>{
+    const tickets = snapshot.val() || {};
+    ticketList.innerHTML = '';
+    for(const [id, t] of Object.entries(tickets)){
+        if(t.status==='open'){
+            const div = document.createElement('div');
+            div.className='ticket';
+            div.innerHTML=`<span>Ticket ID: <b>${id}</b></span>
+            <button onclick="openTicket('${id}')">Go to Ticket</button>`;
+            ticketList.appendChild(div);
+        }
+    }
+});
 
-    Object.entries(data).forEach(([ticketId, ticket])=>{
-      if(ticket.status==='open'){
-        const div = document.createElement('div');
-        div.className = 'notif';
-        div.innerHTML = `
-          <div>
-            <div><b>${ticket.user || 'Anonymous'}</b> opened a ticket</div>
-            <div class="status">Last activity: ${new Date(ticket.lastActivity).toLocaleTimeString()}</div>
-          </div>
-        `;
-        const btn = document.createElement('button');
-        btn.innerText = 'View Ticket';
-        btn.onclick = ()=>window.open('/ticket.html?ticketId='+ticketId, '_blank');
-        div.appendChild(btn);
-        notifContainer.appendChild(div);
-      }
-    });
-  });
+// Open ticket
+function openTicket(id){
+    window.open(`ticket.html?id=${id}`,'_blank');
+}
 </script>
 </body>
 </html>
