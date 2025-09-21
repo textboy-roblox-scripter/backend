@@ -1,34 +1,28 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>PARADISE Tickets</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Paradise Tickets</title>
 <style>
-  body{margin:0;font-family:Inter,sans-serif;background:#050614;color:#e6eef8;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:24px;}
-  h1{color:#8b5cf6} button{padding:10px 18px;margin:6px;border:none;border-radius:10px;background:#8b5cf6;color:#061018;cursor:pointer;}
-  input{padding:8px;margin:4px;border-radius:6px;border:1px solid #555;background:#0f1115;color:#fff;width:220px;}
-  .ticket-list{margin-top:18px;width:100%;max-width:500px;}
-  .ticket-item{padding:12px;border:1px solid #555;border-radius:8px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;}
-  a{color:#6ee7b7;text-decoration:none;}
+body{font-family:sans-serif;background:#0f0f1f;color:white;padding:20px;}
+button{padding:10px 18px;margin-top:10px;background:#7c3aed;border:none;color:white;border-radius:6px;cursor:pointer;}
+#tickets{margin-top:20px;}
+.ticket{padding:12px;margin:8px 0;border:1px solid #7c3aed;border-radius:8px;}
 </style>
 </head>
 <body>
 
-<h1>Create a Ticket</h1>
-<input id="username" placeholder="Your Name" />
-<input id="discord" placeholder="Discord Username (name#1234)" />
-<button id="createTicket">Create Ticket</button>
-
-<h2 style="margin-top:24px;">Your Tickets</h2>
-<div class="ticket-list" id="ticketList"></div>
+<h1>Open a Ticket</h1>
+<button id="openTicketBtn">Open Ticket</button>
+<div id="tickets"></div>
 
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script>
-  // Firebase config
-  const firebaseConfig = {
+// Firebase config
+const firebaseConfig = {
     apiKey: "AIzaSyAWqZClZUwdAoiRXNlWDWFdx2ggrmxdWSE",
     authDomain: "paradise-community.firebaseapp.com",
     databaseURL: "https://paradise-community-default-rtdb.firebaseio.com/",
@@ -36,51 +30,54 @@
     storageBucket: "paradise-community.firebasestorage.app",
     messagingSenderId: "967977031344",
     appId: "1:967977031344:web:6408921ddbd62559f84d75"
-  };
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.database();
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
 
-  const createBtn = document.getElementById('createTicket');
-  const usernameEl = document.getElementById('username');
-  const discordEl = document.getElementById('discord');
-  const ticketListEl = document.getElementById('ticketList');
+// Utils
+function generateId(len=6){return Math.random().toString(36).substr(2,len);}
 
-  createBtn.addEventListener('click', ()=>{
-    const name = usernameEl.value.trim();
-    const discord = discordEl.value.trim();
-    if(!name || !discord){ alert('Enter name and Discord'); return; }
+// Open ticket
+document.getElementById('openTicketBtn').addEventListener('click', async ()=>{
+    const ticketsSnapshot = await db.ref('tickets').once('value');
+    const tickets = ticketsSnapshot.val() || {};
+    if(Object.keys(tickets).length >= 10){
+        alert("Maximum of 10 tickets open at a time.");
+        return;
+    }
+    const ticketId = generateId(8);
+    const ticketData = {id: ticketId, status:'open', lastUpdated: Date.now()};
+    await db.ref('tickets/'+ticketId).set(ticketData);
+    alert(`Ticket opened! Visit: ticket.html?id=${ticketId}`);
+});
 
-    const ticketId = 'ticket_' + Math.random().toString(36).substring(2,10);
-    const ticketData = {
-      user: name,
-      discord: discord,
-      status: 'open',
-      createdAt: Date.now(),
-      lastActivity: Date.now(),
-      messages: {}
-    };
+// Auto-close tickets after 10 min inactivity
+setInterval(async ()=>{
+    const ticketsSnapshot = await db.ref('tickets').once('value');
+    const tickets = ticketsSnapshot.val() || {};
+    const now = Date.now();
+    for(const [id, t] of Object.entries(tickets)){
+        if(t.status==='open' && now - t.lastUpdated > 10*60*1000){
+            db.ref('tickets/'+id).update({status:'closed'});
+        }
+    }
+},60*1000);
 
-    db.ref('tickets/' + ticketId).set(ticketData).then(()=>{
-      alert('Ticket created! ID: ' + ticketId);
-      usernameEl.value=''; discordEl.value='';
-    });
-  });
-
-  function loadTickets(){
-    db.ref('tickets').orderByChild('createdAt').on('value', snapshot=>{
-      const tickets = snapshot.val() || {};
-      ticketListEl.innerHTML = '';
-      Object.entries(tickets).forEach(([id, t])=>{
+// Show user's open tickets
+async function renderTickets(){
+    const ticketsDiv = document.getElementById('tickets');
+    ticketsDiv.innerHTML = '';
+    const snapshot = await db.ref('tickets').once('value');
+    const tickets = snapshot.val() || {};
+    for(const [id, t] of Object.entries(tickets)){
         const div = document.createElement('div');
-        div.className='ticket-item';
-        div.innerHTML=`<span>${t.user} — ${t.status}</span>
-          <a href="ticket.html?ticketId=${id}" target="_blank">Open</a>`;
-        ticketListEl.appendChild(div);
-      });
-    });
-  }
-
-  loadTickets();
+        div.className='ticket';
+        div.innerHTML=`Ticket ID: <b>${id}</b> — Status: <b>${t.status}</b>`;
+        ticketsDiv.appendChild(div);
+    }
+}
+setInterval(renderTickets,3000);
+renderTickets();
 </script>
 </body>
 </html>
