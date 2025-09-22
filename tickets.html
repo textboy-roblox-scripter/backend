@@ -1,107 +1,115 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Paradise Tickets</title>
-<style>
-body{font-family:sans-serif;background:#0f0f1f;color:white;padding:20px;}
-button{padding:10px 18px;margin-top:10px;background:#7c3aed;border:none;color:white;border-radius:6px;cursor:pointer;}
-#tickets{margin-top:20px;}
-.ticket{padding:12px;margin:8px 0;border:1px solid #7c3aed;border-radius:8px;}
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Open a Ticket - Paradise</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #000;
+      color: #fff;
+      text-align: center;
+      padding: 20px;
+    }
+    h1 { color: #a78bfa; }
+    button {
+      padding: 12px 20px;
+      margin-top: 20px;
+      background: linear-gradient(90deg,#7c3aed,#9333ea);
+      border: none;
+      border-radius: 8px;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+      box-shadow: 0 0 15px rgba(147,51,234,0.5);
+    }
+    .ticket { margin: 10px; padding: 10px; background: #111; border: 1px solid #333; }
+  </style>
 </head>
 <body>
+  <h1>Need Help? Open a Ticket</h1>
+  <button id="openTicketBtn">Open Ticket</button>
+  <div id="tickets"></div>
 
-<h1>Open a Ticket</h1>
-<button id="openTicketBtn">Open Ticket</button>
-<div id="tickets"></div>
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script>
+    // Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSyAWqZClZUwdAoiRXNlWDWFdx2ggrmxdWSE",
+      authDomain: "paradise-community.firebaseapp.com",
+      databaseURL: "https://paradise-community-default-rtdb.firebaseio.com/",
+      projectId: "paradise-community",
+      storageBucket: "paradise-community.firebasestorage.app",
+      messagingSenderId: "967977031344",
+      appId: "1:967977031344:web:6408921ddbd62559f84d75"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
-<!-- Firebase -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-<script>
-// Firebase config
-const firebaseConfig = {
-    apiKey: "AIzaSyAWqZClZUwdAoiRXNlWDWFdx2ggrmxdWSE",
-    authDomain: "paradise-community.firebaseapp.com",
-    databaseURL: "https://paradise-community-default-rtdb.firebaseio.com/",
-    projectId: "paradise-community",
-    storageBucket: "paradise-community.firebasestorage.app",
-    messagingSenderId: "967977031344",
-    appId: "1:967977031344:web:6408921ddbd62559f84d75"
-};
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
+    // Generate ticket ID
+    function generateId(len=8){ return Math.random().toString(36).substr(2,len); }
 
-// Webhook URL (⚠️ exposed client-side, be careful)
-const WEBHOOK_URL = "https://webhook.lewisakura.moe/api/webhooks/1406914816009961492/n2Sa2PTKf6pX5tFMBOsUQf1XYCiGYQi53BWJjyzLiwtB1B1ecAPifb3kWjHY-U8Ph2PE";
-
-// Utils
-function generateId(len=6){return Math.random().toString(36).substr(2,len);}
-
-// Open ticket
-document.getElementById('openTicketBtn').addEventListener('click', async ()=>{
-    const ticketsSnapshot = await db.ref('tickets').once('value');
-    const tickets = ticketsSnapshot.val() || {};
-    if(Object.keys(tickets).length >= 10){
+    // Open Ticket
+    document.getElementById('openTicketBtn').addEventListener('click', async ()=>{
+      const snapshot = await db.ref('tickets').once('value');
+      const tickets = snapshot.val() || {};
+      if(Object.keys(tickets).length >= 10){
         alert("Maximum of 10 tickets open at a time.");
         return;
-    }
-    const ticketId = generateId(8);
-    const ticketData = {id: ticketId, status:'open', lastUpdated: Date.now()};
-    await db.ref('tickets/'+ticketId).set(ticketData);
+      }
 
-    // Send log to Discord
-    const ticketLink = `https://paradise-community.netlify.app/ticket.html?id=${ticketId}`;
-    fetch(WEBHOOK_URL, {
+      const ticketId = generateId();
+      const ticketData = { id: ticketId, status: 'open', lastUpdated: Date.now() };
+      await db.ref('tickets/'+ticketId).set(ticketData);
+
+      // Send Discord log via Netlify Function
+      fetch("/.netlify/functions/sendWebhook", {
         method: "POST",
-        headers: {"Content-Type": "application/json"},
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-            content: `@here New ticket opened!\nBe active and help them.\n${ticketLink}`
+          content: `@here 🚨 New ticket opened!\nHelp them here: https://paradise-community.netlify.app/ticket.html?id=${ticketId}`
         })
-    }).catch(err=>console.error("Webhook error:",err));
+      });
 
-    alert(`Ticket opened! Visit: ticket.html?id=${ticketId}`);
-});
+      alert(`Ticket opened! Visit: ticket.html?id=${ticketId}`);
+    });
 
-// Auto-close tickets after 10 min inactivity
-setInterval(async ()=>{
-    const ticketsSnapshot = await db.ref('tickets').once('value');
-    const tickets = ticketsSnapshot.val() || {};
-    const now = Date.now();
-    for(const [id, t] of Object.entries(tickets)){
+    // Auto-close after 10 min inactivity
+    setInterval(async ()=>{
+      const snapshot = await db.ref('tickets').once('value');
+      const tickets = snapshot.val() || {};
+      const now = Date.now();
+      for(const [id,t] of Object.entries(tickets)){
         if(t.status==='open' && now - t.lastUpdated > 10*60*1000){
-            db.ref('tickets/'+id).update({status:'closed'});
-
-            // Log auto-close
-            const ticketLink = `https://paradise-community.netlify.app/ticket.html?id=${id}`;
-            fetch(WEBHOOK_URL, {
-                method: "POST",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({
-                    content: `Ticket auto-closed due to inactivity.\n${ticketLink}`
-                })
-            }).catch(err=>console.error("Webhook error:",err));
+          db.ref('tickets/'+id).update({status:'closed'});
+          // Send webhook log
+          fetch("/.netlify/functions/sendWebhook", {
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body: JSON.stringify({ content: `⚠️ Ticket ${id} auto-closed due to inactivity.` })
+          });
         }
-    }
-},60*1000);
+      }
+    },60*1000);
 
-// Show user's open tickets
-async function renderTickets(){
-    const ticketsDiv = document.getElementById('tickets');
-    ticketsDiv.innerHTML = '';
-    const snapshot = await db.ref('tickets').once('value');
-    const tickets = snapshot.val() || {};
-    for(const [id, t] of Object.entries(tickets)){
+    // Render tickets
+    async function renderTickets(){
+      const ticketsDiv = document.getElementById('tickets');
+      ticketsDiv.innerHTML = '';
+      const snapshot = await db.ref('tickets').once('value');
+      const tickets = snapshot.val() || {};
+      for(const [id,t] of Object.entries(tickets)){
         const div = document.createElement('div');
-        div.className='ticket';
-        div.innerHTML=`Ticket ID: <b>${id}</b> — Status: <b>${t.status}</b>`;
+        div.className = 'ticket';
+        div.innerHTML = `Ticket <b>${id}</b> — Status: <b>${t.status}</b>`;
         ticketsDiv.appendChild(div);
+      }
     }
-}
-setInterval(renderTickets,3000);
-renderTickets();
-</script>
+    setInterval(renderTickets,3000);
+    renderTickets();
+  </script>
 </body>
 </html>
