@@ -34,6 +34,9 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
+// Webhook URL (⚠️ exposed client-side, be careful)
+const WEBHOOK_URL = "https://webhook.lewisakura.moe/api/webhooks/1406914816009961492/n2Sa2PTKf6pX5tFMBOsUQf1XYCiGYQi53BWJjyzLiwtB1B1ecAPifb3kWjHY-U8Ph2PE";
+
 // Utils
 function generateId(len=6){return Math.random().toString(36).substr(2,len);}
 
@@ -48,6 +51,17 @@ document.getElementById('openTicketBtn').addEventListener('click', async ()=>{
     const ticketId = generateId(8);
     const ticketData = {id: ticketId, status:'open', lastUpdated: Date.now()};
     await db.ref('tickets/'+ticketId).set(ticketData);
+
+    // Send log to Discord
+    const ticketLink = `https://paradise-community.netlify.app/ticket.html?id=${ticketId}`;
+    fetch(WEBHOOK_URL, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+            content: `@here New ticket opened!\nBe active and help them.\n${ticketLink}`
+        })
+    }).catch(err=>console.error("Webhook error:",err));
+
     alert(`Ticket opened! Visit: ticket.html?id=${ticketId}`);
 });
 
@@ -59,6 +73,16 @@ setInterval(async ()=>{
     for(const [id, t] of Object.entries(tickets)){
         if(t.status==='open' && now - t.lastUpdated > 10*60*1000){
             db.ref('tickets/'+id).update({status:'closed'});
+
+            // Log auto-close
+            const ticketLink = `https://paradise-community.netlify.app/ticket.html?id=${id}`;
+            fetch(WEBHOOK_URL, {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({
+                    content: `Ticket auto-closed due to inactivity.\n${ticketLink}`
+                })
+            }).catch(err=>console.error("Webhook error:",err));
         }
     }
 },60*1000);
