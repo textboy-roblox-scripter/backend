@@ -1,42 +1,12 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Open a Ticket - Paradise</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #000;
-      color: #fff;
-      text-align: center;
-      padding: 20px;
-    }
-    h1 { color: #a78bfa; }
-    button {
-      padding: 12px 20px;
-      margin-top: 20px;
-      background: linear-gradient(90deg,#7c3aed,#9333ea);
-      border: none;
-      border-radius: 8px;
-      color: white;
-      font-size: 16px;
-      cursor: pointer;
-      box-shadow: 0 0 15px rgba(147,51,234,0.5);
-    }
-    .ticket { margin: 10px; padding: 10px; background: #111; border: 1px solid #333; }
-  </style>
-</head>
-<body>
-  <h1>Need Help? Open a Ticket</h1>
-  <button id="openTicketBtn">Open Ticket</button>
-  <div id="tickets"></div>
+  <meta charset="UTF-8">
+  <title>Paradise tickets/title>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getDatabase, ref, push, set } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-  <script>
-    // Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyAWqZClZUwdAoiRXNlWDWFdx2ggrmxdWSE",
       authDomain: "paradise-community.firebaseapp.com",
@@ -46,70 +16,49 @@
       messagingSenderId: "967977031344",
       appId: "1:967977031344:web:6408921ddbd62559f84d75"
     };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
 
-    // Generate ticket ID
-    function generateId(len=8){ return Math.random().toString(36).substr(2,len); }
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
 
-    // Open Ticket
-    document.getElementById('openTicketBtn').addEventListener('click', async ()=>{
-      const snapshot = await db.ref('tickets').once('value');
-      const tickets = snapshot.val() || {};
-      if(Object.keys(tickets).length >= 10){
-        alert("Maximum of 10 tickets open at a time.");
-        return;
-      }
+    const webhook = "https://discord.com/api/webhooks/XXXX/XXXX"; // replace with your webhook
 
-      const ticketId = generateId();
-      const ticketData = { id: ticketId, status: 'open', lastUpdated: Date.now() };
-      await db.ref('tickets/'+ticketId).set(ticketData);
+    async function createTicket() {
+      const username = document.getElementById("username").value;
+      if (!username) return alert("Enter your Discord username!");
 
-      // Send Discord log via Netlify Function
-      fetch("/.netlify/functions/sendWebhook", {
+      const ticketRef = push(ref(db, "tickets"));
+      const ticketId = ticketRef.key;
+
+      await set(ticketRef, {
+        user: username,
+        status: "open",
+        createdAt: Date.now()
+      });
+
+      // Discord alert
+      fetch(webhook, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          content: `@here 🚨 New ticket opened!\nHelp them here: https://paradise-community.netlify.app/ticket.html?id=${ticketId}`
+          content: `@here 🎫 New ticket opened by **${username}**\n https://paradise-community.netlify.app/ticket.html?Id=${ticketId}`
         })
       });
 
-      alert(`Ticket opened! Visit: ticket.html?id=${ticketId}`);
-    });
-
-    // Auto-close after 10 min inactivity
-    setInterval(async ()=>{
-      const snapshot = await db.ref('tickets').once('value');
-      const tickets = snapshot.val() || {};
-      const now = Date.now();
-      for(const [id,t] of Object.entries(tickets)){
-        if(t.status==='open' && now - t.lastUpdated > 10*60*1000){
-          db.ref('tickets/'+id).update({status:'closed'});
-          // Send webhook log
-          fetch("/.netlify/functions/sendWebhook", {
-            method:"POST",
-            headers:{"Content-Type":"application/json"},
-            body: JSON.stringify({ content: `⚠️ Ticket ${id} auto-closed due to inactivity.` })
-          });
-        }
-      }
-    },60*1000);
-
-    // Render tickets
-    async function renderTickets(){
-      const ticketsDiv = document.getElementById('tickets');
-      ticketsDiv.innerHTML = '';
-      const snapshot = await db.ref('tickets').once('value');
-      const tickets = snapshot.val() || {};
-      for(const [id,t] of Object.entries(tickets)){
-        const div = document.createElement('div');
-        div.className = 'ticket';
-        div.innerHTML = `Ticket <b>${id}</b> — Status: <b>${t.status}</b>`;
-        ticketsDiv.appendChild(div);
-      }
+      window.location.href = `/ticket.html?Id=${ticketId}`;
     }
-    setInterval(renderTickets,3000);
-    renderTickets();
+
+    window.createTicket = createTicket;
   </script>
+  <style>
+    body { background:#000; color:white; font-family:sans-serif; text-align:center; padding:30px; }
+    input,button { padding:10px; margin:10px; border-radius:8px; border:none; }
+    input { width:250px; }
+    button { background:#9333ea; color:white; cursor:pointer; }
+  </style>
+</head>
+<body>
+  <h1>Need help? Open a ticket</h1>
+  <input id="username" placeholder="Your Discord username">
+  <button onclick="createTicket()">Open Ticket</button>
 </body>
 </html>
