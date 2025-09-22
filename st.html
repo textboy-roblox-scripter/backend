@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Paradise Staff Dashboard</title>
+  <title>Staff Dashboard</title>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import { getDatabase, ref, onValue, update } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
@@ -20,35 +20,11 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    // Staff login
-    let staffName = localStorage.getItem("staffName");
+    const webhook = "https://discord.com/api/webhooks/1419598770211127358/XwtQCk1Dl6wDuhG2CFBWwJWAIFkcnuyVFXdkgRY8jQpIOMQDpRwT8p4zxfO0Aj6XBFOz";
+   let staffName = localStorage.getItem("staffName");
     if (!staffName) {
-      staffName = prompt("Enter your staff username:");
+      staffName = prompt("Enter staff username:");
       localStorage.setItem("staffName", staffName);
-    }
-
-    // Listen to tickets
-    const ticketsRef = ref(db, "tickets/");
-    onValue(ticketsRef, snapshot => {
-      const data = snapshot.val() || {};
-      renderTickets(data);
-    });
-
-    async function closeTicket(ticketId) {
-      const ticketRef = ref(db, "tickets/" + ticketId);
-      await update(ticketRef, {
-        status: "closed",
-        closedBy: staffName,
-        closedAt: Date.now()
-      });
-
-      // send to discord via Netlify function
-      fetch("/.netlify/functions/log-to-discord", {
-        method: "POST",
-        body: JSON.stringify({
-          content: `🔒 Ticket ${ticketId} closed by **${staffName}**`
-        })
-      });
     }
 
     function renderTickets(data) {
@@ -57,12 +33,32 @@
       Object.entries(data).forEach(([id, ticket]) => {
         const li = document.createElement("li");
         li.innerHTML = `
-          <b>${id}</b> - ${ticket.status || "open"} by ${ticket.user || "Anon"} 
-          ${ticket.closedBy ? "(Closed by " + ticket.closedBy + ")" : ""}
-          <button onclick="closeTicket('${id}')">Close</button>
+          <b>${id}</b> - ${ticket.status} by ${ticket.user}
+          ${ticket.closedBy ? `(Closed by ${ticket.closedBy})` : ""}
           <a href="/ticket.html?Id=${id}" target="_blank">Open</a>
+          <button onclick="closeTicket('${id}')">Close</button>
         `;
         list.appendChild(li);
+      });
+    }
+
+    const ticketsRef = ref(db, "tickets");
+    onValue(ticketsRef, snap => {
+      const data = snap.val() || {};
+      renderTickets(data);
+    });
+
+    async function closeTicket(id) {
+      const ticketRef = ref(db, "tickets/" + id);
+      await update(ticketRef, { status: "closed", closedBy: staffName });
+
+      // Discord notify
+      fetch(webhook, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          content: `🔒 Ticket **${id}** closed by **${staffName}**`
+        })
       });
     }
 
@@ -77,7 +73,7 @@
   </style>
 </head>
 <body>
-  <h1>Paradise Staff Dashboard</h1>
+  <h1>Staff Dashboard</h1>
   <ul id="tickets"></ul>
 </body>
 </html>
