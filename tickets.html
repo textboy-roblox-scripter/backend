@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Paradise tickets/title>
+  <title>Open a Ticket</title>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import { getDatabase, ref, push, set } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
@@ -20,8 +20,7 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    const webhook = "https://discord.com/api/webhooks/XXXX/XXXX"; // replace with your webhook
-
+    const webhook = "https://discord.com/api/webhooks/1419598770211127358/XwtQCk1Dl6wDuhG2CFBWwJWAIFkcnuyVFXdkgRY8jQpIOMQDpRwT8p4zxfO0Aj6XBFOz";
     async function createTicket() {
       const username = document.getElementById("username").value;
       if (!username) return alert("Enter your Discord username!");
