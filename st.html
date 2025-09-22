@@ -6,7 +6,7 @@
 <title>Staff Tickets</title>
 <style>
 body{font-family:sans-serif;background:#050614;color:white;padding:20px;}
-.ticket{padding:12px;margin:8px 0;border:1px solid #7c3aed;border-radius:8px;display:flex;justify-content:space-between;align-items:center;}
+.ticket{padding:12px;margin:8px 0;border:1px solid #7c3aed;border-radius:8px;display:flex;justify-content:space-between;align-items:center;gap:10px;}
 button{padding:6px 12px;background:#7c3aed;border:none;color:white;border-radius:6px;cursor:pointer;}
 </style>
 </head>
@@ -31,6 +31,9 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
+// Webhook URL
+const WEBHOOK_URL = "https://webhook.lewisakura.moe/api/webhooks/1406914816009961492/n2Sa2PTKf6pX5tFMBOsUQf1XYCiGYQi53BWJjyzLiwtB1B1ecAPifb3kWjHY-U8Ph2PE";
+
 const ticketList = document.getElementById('ticketList');
 
 // Listen for tickets
@@ -42,7 +45,8 @@ db.ref('tickets').on('value', snapshot=>{
             const div = document.createElement('div');
             div.className='ticket';
             div.innerHTML=`<span>Ticket ID: <b>${id}</b></span>
-            <button onclick="openTicket('${id}')">Go to Ticket</button>`;
+            <button onclick="openTicket('${id}')">Go to Ticket</button>
+            <button onclick="closeTicket('${id}')">Close</button>`;
             ticketList.appendChild(div);
         }
     }
@@ -51,6 +55,19 @@ db.ref('tickets').on('value', snapshot=>{
 // Open ticket
 function openTicket(id){
     window.open(`ticket.html?id=${id}`,'_blank');
+}
+
+// Close ticket
+function closeTicket(id){
+    db.ref('tickets/'+id).update({status:'closed'});
+    const ticketLink = `https://paradise-community.netlify.app/ticket.html?id=${id}`;
+    fetch(WEBHOOK_URL, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+            content: `ticket manually closed by staff.\n${ticketLink}`
+        })
+    }).catch(err=>console.error("Webhook error:",err));
 }
 </script>
 </body>
