@@ -1,472 +1,979 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>PARADISE RUN — Glow Edition</title>
-<style>
-  :root{
-    --bg1:#050614; --bg2:#071027; --panel:#0f1115;
-    --accent:#8b5cf6; --accent-2:#6ee7b7; --muted:#9aa0b4;
-    --glass: rgba(255,255,255,0.03);
-  }
-  *{box-sizing:border-box}
-  html,body{height:100%;margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;color:#e6eef8;background:linear-gradient(180deg,var(--bg1),var(--bg2));-webkit-font-smoothing:antialiased}
-  /* Page layout */
-  .app{min-height:100vh;display:grid;place-items:center;padding:24px}
-  .card{width:980px;max-width:96vw;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border-radius:18px;padding:18px;box-shadow:0 12px 40px rgba(0,0,0,0.6);display:grid;grid-template-columns:1fr 340px;gap:18px;position:relative;overflow:hidden}
-  /* particle/clouds layer */
-  .scene{position:absolute;inset:0;pointer-events:none}
-  .cloud{position:absolute;border-radius:60px;background:rgba(18,15,32,0.8);box-shadow:0 10px 30px rgba(139,92,246,0.08) inset}
-  /* left: game canvas */
-  .game-wrap{background:linear-gradient(180deg,rgba(6,10,20,0.7),rgba(3,4,8,0.7));border-radius:12px;padding:12px;display:flex;flex-direction:column;align-items:center;position:relative;overflow:hidden}
-  canvas#game{background:linear-gradient(180deg,#05060a,#081022);border-radius:8px;width:100%;height:480px;display:block;box-shadow:0 8px 28px rgba(0,0,0,0.6) inset}
-  /* scoreboard small overlay top-left */
-  .score-overlay{position:absolute;left:18px;top:18px;background:rgba(1,2,6,0.55);padding:12px;border-radius:8px;backdrop-filter:blur(4px);border:1px solid rgba(255,255,255,0.02)}
-  .score-overlay b{display:block;font-size:20px}
-  .bottom-caption{display:flex;justify-content:space-between;width:100%;padding:8px 6px;margin-top:8px;color:var(--muted);font-size:13px}
-  /* right: controls & stats */
-  .sidebar{padding:18px;background:linear-gradient(180deg,rgba(255,255,255,0.01),rgba(255,255,255,0.006));border-radius:12px}
-  h1{font-size:18px;margin:0 0 8px 0}
-  p.muted{color:var(--muted);font-size:13px;margin:6px 0}
-  .stats{display:flex;flex-direction:column;gap:12px}
-  .stat{background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01));padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.03);font-size:14px}
-  .stat .label{color:var(--muted);font-size:12px}
-  .stat b{display:block;font-size:20px;margin-top:6px}
-  .controls{margin-top:12px;display:flex;flex-direction:column;gap:10px}
-  button{background:linear-gradient(90deg,var(--accent),#6ee7b7);border:none;padding:10px;border-radius:10px;color:#061018;font-weight:700;cursor:pointer;box-shadow:0 6px 18px rgba(139,92,246,0.18)}
-  button.secondary{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--muted);font-weight:600}
-  button.logout{background:linear-gradient(90deg,#ff5c7c,#ff9a6c);box-shadow:0 6px 18px rgba(255,92,124,0.14)}
-  .footer{grid-column:1 / -1;margin-top:10px;color:var(--muted);font-size:13px;text-align:center}
-  /* modal (leaderboard) */
-  .overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);display:none;align-items:center;justify-content:center;z-index:60;backdrop-filter:blur(2px);transition:all .2s ease}
-  .lb-box{width:720px;max-width:92%;background:linear-gradient(180deg,#0e0f14, #0b0b0e);border-radius:14px;padding:18px;box-shadow:0 18px 50px rgba(0,0,0,0.7)}
-  table{width:100%;border-collapse:collapse;color:#e6eef8}
-  th,td{padding:10px;text-align:left;border-bottom:1px solid rgba(255,255,255,0.03)}
-  th{color:var(--muted);font-weight:600;font-size:13px}
-  tr:hover td{background:linear-gradient(90deg,rgba(139,92,246,0.06),rgba(0,255,224,0.03))}
-  /* game over overlay */
-  .game-over{position:absolute;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;z-index:40;background:linear-gradient(180deg,rgba(0,0,0,0.5),rgba(0,0,0,0.6));backdrop-filter:blur(2px)}
-  .game-over h2{font-size:28px;margin-bottom:8px}
-  .playagain{background:linear-gradient(90deg,#8b5cf6,#6ee7b7);padding:10px 18px;border-radius:10px;color:#061018;border:none;cursor:pointer;font-weight:700}
-  /* responsive */
-  @media (max-width:880px){ .card{grid-template-columns:1fr; padding:12px} canvas#game{height:380px} .sidebar{position:relative;order:3;margin-top:8px} }
-</style>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>PARADISE RUN</title>
+    <style>
+        :root {
+            --bg1: #050614;
+            --bg2: #071027;
+            --panel: #0f1115;
+            --accent: #8b5cf6;
+            --accent-2: #6ee7b7;
+            --muted: #9aa0b4;
+            --glass: rgba(255, 255, 255, 0.03);
+        }
+
+        * {
+            box-sizing: border-box
+        }
+
+        html, body {
+            height: 100%;
+            margin: 0;
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+            color: #e6eef8;
+            background: linear-gradient(180deg, var(--bg1), var(--bg2));
+            -webkit-font-smoothing: antialiased
+        }
+
+        /* Page layout */
+        .app {
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            padding: 24px
+        }
+
+        .card {
+            width: 980px;
+            max-width: 96vw;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.01));
+            border-radius: 18px;
+            padding: 18px;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+            display: grid;
+            grid-template-columns: 1fr 340px;
+            gap: 18px;
+            position: relative;
+            overflow: hidden
+        }
+
+        /* particle/clouds layer */
+        .scene {
+            position: absolute;
+            inset: 0;
+            pointer-events: none
+        }
+
+        .cloud {
+            position: absolute;
+            border-radius: 60px;
+            background: rgba(18, 15, 32, 0.8);
+            box-shadow: 0 10px 30px rgba(139, 92, 246, 0.08) inset
+        }
+
+        /* left: game canvas */
+        .game-wrap {
+            background: linear-gradient(180deg, rgba(6, 10, 20, 0.7), rgba(3, 4, 8, 0.7));
+            border-radius: 12px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            overflow: hidden
+        }
+
+        canvas#game {
+            background: linear-gradient(180deg, #05060a, #081022);
+            border-radius: 8px;
+            width: 100%;
+            height: 480px;
+            display: block;
+            box-shadow: 0 8px 28px rgba(0, 0, 0, 0.6) inset
+        }
+
+        /* scoreboard small overlay top-left */
+        .score-overlay {
+            position: absolute;
+            left: 18px;
+            top: 18px;
+            background: rgba(1, 2, 6, 0.55);
+            padding: 12px;
+            border-radius: 8px;
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.02)
+        }
+
+        .score-overlay b {
+            display: block;
+            font-size: 20px
+        }
+
+        .bottom-caption {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            padding: 8px 6px;
+            margin-top: 8px;
+            color: var(--muted);
+            font-size: 13px
+        }
+
+        /* right: controls & stats */
+        .sidebar {
+            padding: 18px;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.01), rgba(255, 255, 255, 0.006));
+            border-radius: 12px
+        }
+
+        h1 {
+            font-size: 18px;
+            margin: 0 0 8px 0
+        }
+
+        p.muted {
+            color: var(--muted);
+            font-size: 13px;
+            margin: 6px 0
+        }
+
+        .stats {
+            display: flex;
+            flex-direction: column;
+            gap: 12px
+        }
+
+        .stat {
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.01));
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            font-size: 14px
+        }
+
+        .stat .label {
+            color: var(--muted);
+            font-size: 12px
+        }
+
+        .stat b {
+            display: block;
+            font-size: 20px;
+            margin-top: 6px
+        }
+
+        .controls {
+            margin-top: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px
+        }
+
+        button {
+            background: linear-gradient(90deg, var(--accent), #6ee7b7);
+            border: none;
+            padding: 10px;
+            border-radius: 10px;
+            color: #061018;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 6px 18px rgba(139, 92, 246, 0.18)
+        }
+
+        button.secondary {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            color: var(--muted);
+            font-weight: 600
+        }
+
+        button.logout {
+            background: linear-gradient(90deg, #ff5c7c, #ff9a6c);
+            box-shadow: 0 6px 18px rgba(255, 92, 124, 0.14)
+        }
+
+        .footer {
+            grid-column: 1 / -1;
+            margin-top: 10px;
+            color: var(--muted);
+            font-size: 13px;
+            text-align: center
+        }
+
+        /* modal (leaderboard) */
+        .overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 60;
+            backdrop-filter: blur(2px);
+            transition: all .2s ease
+        }
+
+        .lb-box {
+            width: 720px;
+            max-width: 92%;
+            background: linear-gradient(180deg, #0e0f14, #0b0b0e);
+            border-radius: 14px;
+            padding: 18px;
+            box-shadow: 0 18px 50px rgba(0, 0, 0, 0.7)
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            color: #e6eef8
+        }
+
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03)
+        }
+
+        th {
+            color: var(--muted);
+            font-weight: 600;
+            font-size: 13px
+        }
+
+        tr:hover td {
+            background: linear-gradient(90deg, rgba(139, 92, 246, 0.06), rgba(0, 255, 224, 0.03))
+        }
+
+        /* game over overlay */
+        .game-over {
+            position: absolute;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            z-index: 40;
+            background: linear-gradient(180deg, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.6));
+            backdrop-filter: blur(2px)
+        }
+
+        .game-over h2 {
+            font-size: 28px;
+            margin-bottom: 8px
+        }
+
+        .playagain {
+            background: linear-gradient(90deg, #8b5cf6, #6ee7b7);
+            padding: 10px 18px;
+            border-radius: 10px;
+            color: #061018;
+            border: none;
+            cursor: pointer;
+            font-weight: 700
+        }
+
+        /* responsive */
+        @media (max-width:880px) {
+            .card {
+                grid-template-columns: 1fr;
+                padding: 12px
+            }
+
+            canvas#game {
+                height: 380px
+            }
+
+            .sidebar {
+                position: relative;
+                order: 3;
+                margin-top: 8px
+            }
+        }
+
+        /* New CSS for active leaderboard tab */
+        .active-tab {
+            background: linear-gradient(90deg, var(--accent), var(--accent-2));
+            color: #061018 !important;
+        }
+    </style>
 </head>
 <body>
-  <div class="app">
-    <div class="card" id="card">
-      <div class="scene" id="scene">
-        <!-- animated clouds (positioned from JS) -->
-      </div>
-
-      <!-- LEFT: Game -->
-      <div class="game-wrap" id="gameWrap">
-        <div class="score-overlay">
-          <div style="font-size:13px;color:var(--muted)">Score</div>
-          <b id="overlayScore">0</b>
-          <div style="font-size:12px;color:var(--muted);margin-top:6px">High: <span id="overlayHigh">0</span></div>
+    <div class="app">
+        <div class="card" id="card">
+            <div class="scene" id="scene">
+                </div>
+            <div class="game-wrap" id="gameWrap">
+                <div class="score-overlay">
+                    <div style="font-size:13px;color:var(--muted)">Score</div>
+                    <b id="overlayScore">0</b>
+                    <div style="font-size:12px;color:var(--muted);margin-top:6px">High: <span id="overlayHigh">0</span></div>
+                </div>
+                <canvas id="game"></canvas>
+                <div class="bottom-caption">
+                    <div><span style="font-weight:700">PARADISE</span> RUN <span style="opacity:.9;color:var(--muted)">(discord.gg/paradiserbx)</span></div>
+                    <div style="text-align:right;color:var(--muted)">Controls: ↑ / Space to jump — Click or tap to jump</div>
+                </div>
+                <div class="game-over" id="gameOver">
+                    <h2 id="goText">Game Over — Click Start to Restart</h2>
+                    <div style="display:flex;gap:12px">
+                        <button class="playagain" id="playAgain">Play Again</button>
+                        <button class="secondary" id="goLeaderboard">Leaderboard</button>
+                    </div>
+                </div>
+            </div>
+            <div class="sidebar">
+                <h1>Live Stats</h1>
+                <p class="muted">STATS :</p>
+                <div class="stats">
+                    <div class="stat"><div class="label">Score</div><b id="score">0</b></div>
+                    <div class="stat"><div class="label">Your High Score</div><b id="hi">0</b></div>
+                    <div class="stat"><div class="label">Speed</div><b id="speed">1.00x</b></div>
+                </div>
+                <div class="controls">
+                    <button id="start">Start / Restart</button>
+                    <button id="toggle-paused" class="secondary">Pause</button>
+                    <button id="export" class="secondary">Export Live Stats</button>
+                    <button id="open-lb" class="secondary">Leaderboard</button>
+                    <button id="logout" class="logout">Logout</button>
+                </div>
+            </div>
+            <div class="footer">Made with ♥ by Nothing</div>
         </div>
-
-        <canvas id="game"></canvas>
-
-        <div class="bottom-caption">
-          <div><span style="font-weight:700">PARADISE</span> RUN <span style="opacity:.9;color:var(--muted)">(discord.gg/paradiserbx)</span></div>
-          <div style="text-align:right;color:var(--muted)">Controls: ↑ / Space to jump — Click or tap to jump</div>
-        </div>
-
-        <!-- Game Over overlay -->
-        <div class="game-over" id="gameOver">
-          <h2 id="goText">Game Over — Click Start to Restart</h2>
-          <div style="display:flex;gap:12px">
-            <button class="playagain" id="playAgain">Play Again</button>
-            <button class="secondary" id="goLeaderboard">Leaderboard</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- RIGHT: Sidebar -->
-      <div class="sidebar">
-        <h1>Live Stats</h1>
-        <p class="muted">STATS :</p>
-        <div class="stats">
-          <div class="stat"><div class="label">Score</div><b id="score">0</b></div>
-          <div class="stat"><div class="label">Your High Score</div><b id="hi">0</b></div>
-          <div class="stat"><div class="label">Speed</div><b id="speed">1.00x</b></div>
-        </div>
-
-        <div class="controls">
-          <button id="start">Start / Restart</button>
-          <button id="toggle-paused" class="secondary">Pause</button>
-          <button id="export" class="secondary">Export Live Stats</button>
-          <button id="open-lb" class="secondary">Leaderboard</button>
-          <button id="logout" class="logout">Logout</button>
-        </div>
-      </div>
-
-      <div class="footer">Made with ♥ by Nothing</div>
     </div>
-  </div>
-
-  <!-- Leaderboard Modal -->
-  <div class="overlay" id="overlay">
-    <div class="lb-box" role="dialog" aria-modal="true">
-      <h2 style="text-align:center">Leaderboard — Top 100</h2>
-      <table>
-        <thead><tr><th>#</th><th>User</th><th>Discord</th><th>Score</th></tr></thead>
-        <tbody id="lbBody"></tbody>
-      </table>
-      <div style="display:flex;justify-content:center;margin-top:12px">
-        <button class="btn secondary" id="closeLb">Close</button>
-      </div>
+    <div class="overlay" id="overlay">
+        <div class="lb-box" role="dialog" aria-modal="true">
+            <h2 style="text-align:center">Leaderboard</h2>
+            <div class="leaderboard-tabs" style="display:flex;justify-content:center;gap:12px;margin-bottom:12px;">
+                <button class="secondary active-tab" id="tab-weekly">Weekly</button>
+                <button class="secondary" id="tab-monthly">Monthly</button>
+                <button class="secondary" id="tab-all-time">All-Time</button>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>User</th>
+                        <th>Discord</th>
+                        <th>Score</th>
+                    </tr>
+                </thead>
+                <tbody id="lbBody"></tbody>
+            </table>
+            <div style="display:flex;justify-content:center;margin-top:12px">
+                <button class="btn secondary" id="closeLb">Close</button>
+            </div>
+        </div>
     </div>
-  </div>
 
-<script>
-/* ---------------------------
-   Utilities & initial setup
-   --------------------------- */
-const canvas = document.getElementById('game'), ctx = canvas.getContext('2d');
-const overlay = document.getElementById('overlay'), lbBody = document.getElementById('lbBody');
-const startBtn = document.getElementById('start'), pauseBtn = document.getElementById('toggle-paused');
-const exportBtn = document.getElementById('export'), openLbBtn = document.getElementById('open-lb');
-const logoutBtn = document.getElementById('logout');
-const scoreEl = document.getElementById('score'), hiEl = document.getElementById('hi'), speedEl = document.getElementById('speed');
-const overlayScore = document.getElementById('overlayScore'), overlayHigh = document.getElementById('overlayHigh');
-const gameOverEl = document.getElementById('gameOver'), goText = document.getElementById('goText'), playAgainBtn = document.getElementById('playAgain');
-const goLbBtn = document.getElementById('goLeaderboard');
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyAWqZClZUwdAoiRXNlWDWFdx2ggrmxdWSE",
+            authDomain: "paradise-community.firebaseapp.com",
+            projectId: "paradise-community",
+            storageBucket: "paradise-community.firebasestorage.app",
+            messagingSenderId: "967977031344",
+            appId: "1:967977031344:web:6408921ddbd62559f84d75"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+    </script>
 
-let DPR = window.devicePixelRatio || 1;
-function resizeCanvas(){
-  const w = canvas.clientWidth, h = canvas.clientHeight;
-  canvas.width = Math.floor(w * DPR);
-  canvas.height = Math.floor(h * DPR);
-  ctx.setTransform(DPR,0,0,DPR,0,0);
-}
-window.addEventListener('resize', resizeCanvas);
-canvas.style.width = '100%';
-canvas.style.height = '480px';
-resizeCanvas();
+    <script>
+        /* ---------------------------   Utilities & initial setup   --------------------------- */
+        const canvas = document.getElementById('game'),
+            ctx = canvas.getContext('2d');
+        const overlay = document.getElementById('overlay'),
+            lbBody = document.getElementById('lbBody');
+        const startBtn = document.getElementById('start'),
+            pauseBtn = document.getElementById('toggle-paused');
+        const exportBtn = document.getElementById('export'),
+            openLbBtn = document.getElementById('open-lb');
+        const logoutBtn = document.getElementById('logout');
+        const scoreEl = document.getElementById('score'),
+            hiEl = document.getElementById('hi'),
+            speedEl = document.getElementById('speed');
+        const overlayScore = document.getElementById('overlayScore'),
+            overlayHigh = document.getElementById('overlayHigh');
+        const gameOverEl = document.getElementById('gameOver'),
+            goText = document.getElementById('goText'),
+            playAgainBtn = document.getElementById('playAgain');
+        const goLbBtn = document.getElementById('goLeaderboard');
 
-/* ---------------------------
-   Particle clouds background
-   --------------------------- */
-const scene = document.getElementById('scene');
-const clouds = [];
-function createCloud(x,y,w,h,alpha){ const el = document.createElement('div'); el.className='cloud'; el.style.left=x+'px'; el.style.top=y+'px'; el.style.width=w+'px'; el.style.height=h+'px'; el.style.opacity=alpha; scene.appendChild(el); clouds.push({el,x,y,w,h,dx:(Math.random()*0.3-0.15)}); }
-(function populateClouds(){
-  createCloud(40,40,260,60,0.9); createCloud(320,60,280,64,0.9); createCloud(80,120,220,54,0.85);
-  createCloud(520,30,180,44,0.8); createCloud(620,140,200,52,0.8);
-})();
-function animateClouds(){
-  for(const c of clouds){
-    c.x += c.dx;
-    if(c.x < -300) c.x = scene.clientWidth + 200;
-    if(c.x > scene.clientWidth + 200) c.x = -300;
-    c.el.style.left = c.x + 'px';
-  }
-  requestAnimationFrame(animateClouds);
-}
-animateClouds();
+        let DPR = window.devicePixelRatio || 1;
 
-/* ---------------------------
-   Auth (simple localStorage)
-   --------------------------- */
-let currentUser = null;
-function showAuthPrompt(){
-  // quick modal signup/login using prompt() to keep the UI clean inside the card
-  let mode = localStorage.getItem('pr_auth_mode') || 'login';
-  if(mode === 'login'){
-    const user = prompt('Login — Username:');
-    if(!user) return showAuthPrompt();
-    const pass = prompt('Password:');
-    const stored = localStorage.getItem('pr_user_' + user);
-    if(!stored){ alert('User not found. Click OK to sign up.'); localStorage.setItem('pr_auth_mode','signup'); return showAuthPrompt(); }
-    const obj = JSON.parse(stored);
-    if(obj.pass !== pass){ alert('Wrong password'); return showAuthPrompt(); }
-    currentUser = { name:user, discord: obj.discord, high: obj.high || 0 };
-    document.getElementById('overlayScore').textContent = 0;
-    document.getElementById('overlayHigh').textContent = currentUser.high;
-    document.getElementById('hi').textContent = currentUser.high;
-    localStorage.setItem('pr_auth_mode','login');
-    return;
-  } else {
-    const user = prompt('Sign Up — choose a username:');
-    if(!user) return showAuthPrompt();
-    if(localStorage.getItem('pr_user_' + user)){ alert('Username taken'); return showAuthPrompt(); }
-    const pass = prompt('Choose a password:');
-    if(!pass) return showAuthPrompt();
-    const discord = prompt('Discord username (e.g. name#1234):');
-    if(!discord) return showAuthPrompt();
-    localStorage.setItem('pr_user_' + user, JSON.stringify({ pass, discord, high: 0 }));
-    alert('Account created. Now login.');
-    localStorage.setItem('pr_auth_mode','login');
-    return showAuthPrompt();
-  }
-}
-// A nicer inline small login flow instead of prompt could be added — using prompts keeps this file compact.
+        function resizeCanvas() {
+            const w = canvas.clientWidth,
+                h = canvas.clientHeight;
+            canvas.width = Math.floor(w * DPR);
+            canvas.height = Math.floor(h * DPR);
+            ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+        }
+        window.addEventListener('resize', resizeCanvas);
+        canvas.style.width = '100%';
+        canvas.style.height = '480px';
+        resizeCanvas();
 
-document.getElementById('start').addEventListener('click', ()=>{
-  if(!currentUser) { showAuthPrompt(); if(!currentUser) return; }
-  start(true);
-});
-logoutBtn.addEventListener('click', ()=>{
-  if(confirm('Logout?')) { currentUser = null; alert('Logged out'); }
-});
+        /* ---------------------------   Particle clouds background   --------------------------- */
+        const scene = document.getElementById('scene');
+        const clouds = [];
 
-/* ---------------------------
-   Game variables & helpers
-   --------------------------- */
-let running = false, paused = false;
-let score = 0, high = 0, speed = 1.0, tick = 0;
-const player = { x: 80, y: 0, w: 36, h: 48, vy: 0, grounded: false };
-const groundY = 380; // visual ground
-let obstacles = [];
-function resetGameState(){
-  score = 0; tick = 0; speed = 1.0; obstacles = [];
-  player.y = groundY - player.h; player.vy = 0; player.grounded = true;
-  overlayScore.textContent = '0';
-}
+        function createCloud(x, y, w, h, alpha) {
+            const el = document.createElement('div');
+            el.className = 'cloud';
+            el.style.left = x + 'px';
+            el.style.top = y + 'px';
+            el.style.width = w + 'px';
+            el.style.height = h + 'px';
+            el.style.opacity = alpha;
+            scene.appendChild(el);
+            clouds.push({
+                el,
+                x,
+                y,
+                w,
+                h,
+                dx: (Math.random() * 0.3 - 0.15)
+            });
+        }
+        (function populateClouds() {
+            createCloud(40, 40, 260, 60, 0.9);
+            createCloud(320, 60, 280, 64, 0.9);
+            createCloud(80, 120, 220, 54, 0.85);
+            createCloud(520, 30, 180, 44, 0.8);
+            createCloud(620, 140, 200, 52, 0.8);
+        })();
 
-/* Improved spawn timing (breathing room) */
-let spawnTimer = 0;
-function spawnObstacle(){
-  const h = 28 + Math.random()*52;
-  const obs = { x: canvas.clientWidth + 40, y: groundY - h, w: 24 + Math.random()*40, h };
-  obstacles.push(obs);
-}
+        function animateClouds() {
+            for (const c of clouds) {
+                c.x += c.dx;
+                if (c.x < -300) c.x = scene.clientWidth + 200;
+                if (c.x > scene.clientWidth + 200) c.x = -300;
+                c.el.style.left = c.x + 'px';
+            }
+            requestAnimationFrame(animateClouds);
+        }
+        animateClouds();
 
-/* Physics params */
-const gravity = 1800;
-const jumpVel = -720;
+        /* ---------------------------   Game variables & helpers   --------------------------- */
+        let running = false,
+            paused = false;
+        let score = 0,
+            high = 0,
+            speed = 1.0,
+            tick = 0;
+        const player = {
+            x: 80,
+            y: 0,
+            w: 36,
+            h: 48,
+            vy: 0,
+            grounded: false
+        };
+        const groundY = 380; // visual ground
+        let obstacles = [];
 
-/* Input */
-let wantJump = false;
-function jump(){
-  if(!running) start(true);
-  wantJump = true;
-}
-window.addEventListener('keydown', e=>{
-  if(e.key === ' ' || e.key === 'ArrowUp') { e.preventDefault(); jump(); }
-  if(e.key === 'p') togglePause();
-});
-canvas.addEventListener('mousedown', ()=>jump());
-canvas.addEventListener('touchstart', e=>{ e.preventDefault(); jump(); }, {passive:false});
+        function resetGameState() {
+            score = 0;
+            tick = 0;
+            speed = 1.0;
+            obstacles = [];
+            player.y = groundY - player.h;
+            player.vy = 0;
+            player.grounded = true;
+            overlayScore.textContent = '0';
+        }
 
-/* Start / Pause / Loop */
-let lastTime = performance.now();
-function start(forceRestart=false){
-  if(running && !forceRestart) return;
-  running = true; paused = false;
-  resetGameState();
-  document.getElementById('gameOver').style.display = 'none';
-  lastTime = performance.now();
-  requestAnimationFrame(loop);
-}
-function togglePause(){
-  if(!running) return;
-  paused = !paused;
-  pauseBtn.innerText = paused ? 'Resume' : 'Pause';
-}
+        /* Improved spawn timing (breathing room) */
+        let spawnTimer = 0;
 
-/* Collision AABB */
-function collides(a,b){ return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y; }
+        function spawnObstacle() {
+            const h = 28 + Math.random() * 52;
+            const obs = {
+                x: canvas.clientWidth + 40,
+                y: groundY - h,
+                w: 24 + Math.random() * 40,
+                h
+            };
+            obstacles.push(obs);
+        }
 
-/* game loop */
-function loop(now){
-  if(!running) return;
-  let dt = Math.min((now - lastTime)/1000, 0.05);
-  lastTime = now;
-  if(!paused) update(dt);
-  render();
-  if(running) requestAnimationFrame(loop);
-}
+        /* Physics params */
+        const gravity = 1800;
+        const jumpVel = -720;
 
-function update(dt){
-  tick += dt;
-  // ramp speed gradually
-  speed = 1 + Math.floor(score/50) * 0.06 + Math.min(score/500, 0.6);
-  speedEl.textContent = speed.toFixed(2) + 'x';
+        /* Input */
+        let wantJump = false;
 
-  // spawn timer (more fair spacing)
-  spawnTimer -= dt * speed;
-  if(spawnTimer <= 0){
-    spawnObstacle();
-    spawnTimer = Math.max(1.0 - Math.min(score/2000,0.5) - Math.random()*0.4, 0.6);
-  }
+        function jump() {
+            if (!running) start(true);
+            wantJump = true;
+        }
+        window.addEventListener('keydown', e => {
+            if (e.key === ' ' || e.key === 'ArrowUp') {
+                e.preventDefault();
+                jump();
+            }
+            if (e.key === 'p') togglePause();
+        });
+        canvas.addEventListener('mousedown', () => jump());
+        canvas.addEventListener('touchstart', e => {
+            e.preventDefault();
+            jump();
+        }, {
+            passive: false
+        });
 
-  // jump
-  if(wantJump && player.grounded){ player.vy = jumpVel; player.grounded = false; }
-  wantJump = false;
+        /* Start / Pause / Loop */
+        let lastTime = performance.now();
 
-  // physics integrate
-  player.vy += gravity * dt;
-  player.y += player.vy * dt;
-  if(player.y + player.h >= groundY){ player.y = groundY - player.h; player.vy = 0; player.grounded = true; }
+        function start(forceRestart = false) {
+            if (running && !forceRestart) return;
+            running = true;
+            paused = false;
+            resetGameState();
+            document.getElementById('gameOver').style.display = 'none';
+            lastTime = performance.now();
+            requestAnimationFrame(loop);
+        }
 
-  // move obstacles and check collisions
-  for(let i = obstacles.length - 1; i >= 0; i--){
-    obstacles[i].x -= (220 + 120*speed) * dt;
-    if(collides(player, obstacles[i])){
-      // game over
-      running = false;
-      high = Math.max(high, score);
-      endGame();
-      return;
-    }
-    if(obstacles[i].x + obstacles[i].w < -20) obstacles.splice(i,1);
-  }
+        function togglePause() {
+            if (!running) return;
+            paused = !paused;
+            pauseBtn.innerText = paused ? 'Resume' : 'Pause';
+        }
 
-  // scoring
-  score += Math.floor(dt * 100 * speed);
-  overlayScore.textContent = Math.floor(score);
-  scoreEl.textContent = Math.floor(score);
-}
+        /* Collision AABB */
+        function collides(a, b) {
+            return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+        }
 
-/* Render */
-function drawRoundedRect(x,y,w,h,r){
-  ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); ctx.fill();
-}
-function render(){
-  const W = canvas.clientWidth, H = canvas.clientHeight;
-  ctx.clearRect(0,0,W,H);
+        /* game loop */
+        function loop(now) {
+            if (!running) return;
+            let dt = Math.min((now - lastTime) / 1000, 0.05);
+            lastTime = now;
+            if (!paused) update(dt);
+            render();
+            if (running) requestAnimationFrame(loop);
+        }
 
-  // subtle gradient sky
-  const g = ctx.createLinearGradient(0,0,0,H);
-  g.addColorStop(0,'#071027'); g.addColorStop(1,'#05060c');
-  ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
+        function update(dt) {
+            tick += dt;
+            // ramp speed gradually
+            speed = 1 + Math.floor(score / 50) * 0.06 + Math.min(score / 500, 0.6);
+            speedEl.textContent = speed.toFixed(2) + 'x';
 
-  // parallax rounded clouds using tick
-  for(let i=0;i<6;i++){
-    const px = (i*300 + (tick*20*(0.05+i*0.03))) % (W+300) - 120;
-    ctx.fillStyle = 'rgba(21,18,36,' + (0.05 + i*0.02) + ')';
-    drawRoundedRect(px, 60 + i*18, 200, 60, 40);
-  }
+            // spawn timer (more fair spacing)
+            spawnTimer -= dt * speed;
+            if (spawnTimer <= 0) {
+                spawnObstacle();
+                spawnTimer = Math.max(1.0 - Math.min(score / 2000, 0.5) - Math.random() * 0.4, 0.6);
+            }
 
-  // ground
-  ctx.fillStyle = '#02030a'; drawRoundedRect(0, groundY, W, H-groundY + 6, 0);
-  // ground glow line
-  ctx.fillStyle = '#12131a'; ctx.fillRect(0, groundY-4, W, 4);
+            // jump
+            if (wantJump && player.grounded) {
+                player.vy = jumpVel;
+                player.grounded = false;
+            }
+            wantJump = false;
 
-  // player shadow
-  ctx.save(); ctx.globalAlpha = 0.14; ctx.fillStyle = '#000'; ctx.beginPath(); ctx.ellipse(player.x+player.w/2, groundY+10, 34, 10, 0, 0, Math.PI*2); ctx.fill(); ctx.restore();
+            // physics integrate
+            player.vy += gravity * dt;
+            player.y += player.vy * dt;
+            if (player.y + player.h >= groundY) {
+                player.y = groundY - player.h;
+                player.vy = 0;
+                player.grounded = true;
+            }
 
-  // player body with glow
-  ctx.save();
-  ctx.fillStyle = 'rgba(255,255,255,0.06)';
-  drawRoundedRect(player.x-2, player.y-2, player.w+4, player.h+4, 8);
-  ctx.fillStyle = '#8b5cf6';
-  ctx.shadowColor = '#8b5cf6'; ctx.shadowBlur = 20;
-  drawRoundedRect(player.x, player.y, player.w, player.h, 8);
-  ctx.restore();
+            // move obstacles and check collisions
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                obstacles[i].x -= (220 + 120 * speed) * dt;
+                if (collides(player, obstacles[i])) {
+                    // game over
+                    running = false;
+                    endGame();
+                    return;
+                }
+                if (obstacles[i].x + obstacles[i].w < -20) obstacles.splice(i, 1);
+            }
 
-  // obstacles (blocks) with purple top
-  for(const o of obstacles){
-    // shadow under block
-    ctx.save(); ctx.globalAlpha = 0.12; ctx.fillStyle = '#000'; ctx.fillRect(o.x+6, o.y+8, o.w, o.h); ctx.restore();
-    // block body
-    ctx.save(); ctx.fillStyle = '#111217'; ctx.fillRect(o.x, o.y, o.w, o.h);
-    // purple top highlight
-    ctx.fillStyle = '#8b5cf6'; ctx.fillRect(o.x + 6, o.y + 6, Math.max(4, o.w - 12), 6);
-    ctx.restore();
-  }
+            // scoring
+            score += Math.floor(dt * 100 * speed);
+            overlayScore.textContent = Math.floor(score);
+            scoreEl.textContent = Math.floor(score);
+        }
 
-  // scoreboard overlay (redundant)
-  ctx.fillStyle = 'rgba(0,0,0,0.18)'; ctx.fillRect(12,12,148,56);
-  ctx.fillStyle = '#fff'; ctx.font = '700 16px system-ui'; ctx.fillText('Score: ' + Math.floor(score), 22, 34);
-  ctx.fillStyle = '#9aa0b4'; ctx.font = '600 12px system-ui'; ctx.fillText('High: ' + high, 22, 52);
+        /* Render */
+        function drawRoundedRect(x, y, w, h, r) {
+            ctx.beginPath();
+            ctx.moveTo(x + r, y);
+            ctx.arcTo(x + w, y, x + w, y + h, r);
+            ctx.arcTo(x + w, y + h, x, y + h, r);
+            ctx.arcTo(x, y + h, x, y, r);
+            ctx.arcTo(x, y, x + w, y, r);
+            ctx.closePath();
+            ctx.fill();
+        }
 
-  // if not running show overlay
-  if(!running){
-    // show game over overlay in DOM
-    gameOverEl.style.display = 'flex';
-  } else {
-    gameOverEl.style.display = 'none';
-  }
-}
+        function render() {
+            const W = canvas.clientWidth,
+                H = canvas.clientHeight;
+            ctx.clearRect(0, 0, W, H);
 
-/* End game handling */
-function endGame(){
-  // save user high and add run to leaderboard
-  if(!currentUser){
-    // prompt login if somehow not logged in
-    showAuthPrompt();
-    if(!currentUser) { alert('No user logged in; run not saved.'); return; }
-  }
-  // update user's stored high
-  const key = 'pr_user_' + currentUser.name;
-  let uobj = JSON.parse(localStorage.getItem(key) || '{}');
-  uobj.pass = uobj.pass || uobj.pass; // keep pass unchanged if present
-  uobj.discord = uobj.discord || currentUser.discord || '';
-  uobj.high = Math.max(uobj.high || 0, score);
-  localStorage.setItem(key, JSON.stringify(uobj));
-  currentUser.high = uobj.high;
-  hiEl.textContent = currentUser.high;
-  overlayHigh.textContent = currentUser.high;
+            // subtle gradient sky
+            const g = ctx.createLinearGradient(0, 0, 0, H);
+            g.addColorStop(0, '#071027');
+            g.addColorStop(1, '#05060c');
+            ctx.fillStyle = g;
+            ctx.fillRect(0, 0, W, H);
 
-  // push run into global leaderboard (top 100)
-  const lbKey = 'pr_leaderboard';
-  let lb = JSON.parse(localStorage.getItem(lbKey) || '[]');
-  lb.push({ user: currentUser.name, discord: uobj.discord || currentUser.discord || '', score: score, ts: Date.now() });
-  lb.sort((a,b)=>b.score - a.score);
-  if(lb.length > 100) lb = lb.slice(0,100);
-  localStorage.setItem(lbKey, JSON.stringify(lb));
+            // parallax rounded clouds using tick
+            for (let i = 0; i < 6; i++) {
+                const px = (i * 300 + (tick * 20 * (0.05 + i * 0.03))) % (W + 300) - 120;
+                ctx.fillStyle = 'rgba(21,18,36,' + (0.05 + i * 0.02) + ')';
+                drawRoundedRect(px, 60 + i * 18, 200, 60, 40);
+            }
 
-  // show Game Over text and let user choose play again or view LB
-  goText.innerText = `Game Over — Score: ${score}`;
-  gameOverEl.style.display = 'flex';
-}
+            // ground
+            ctx.fillStyle = '#02030a';
+            drawRoundedRect(0, groundY, W, H - groundY + 6, 0);
+            // ground glow line
+            ctx.fillStyle = '#12131a';
+            ctx.fillRect(0, groundY - 4, W, 4);
 
-/* Play again / Leaderboard from overlay */
-playAgainBtn.addEventListener('click', ()=>{ gameOverEl.style.display='none'; start(true); });
-goLbBtn.addEventListener('click', ()=>{ gameOverEl.style.display='none'; showLeaderboard(); });
+            // player shadow
+            ctx.save();
+            ctx.globalAlpha = 0.14;
+            ctx.fillStyle = '#000';
+            ctx.beginPath();
+            ctx.ellipse(player.x + player.w / 2, groundY + 10, 34, 10, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
 
-/* Leaderboard modal functions */
-function showLeaderboard(){
-  // darker page
-  overlay.style.display = 'flex';
-  // update table body
-  const lb = JSON.parse(localStorage.getItem('pr_leaderboard') || '[]');
-  lbBody.innerHTML = '';
-  lb.forEach((r, i) => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td style="width:50px">${i+1}</td><td>${escapeHtml(r.user)}</td><td>${escapeHtml(r.discord)}</td><td>${r.score}</td>`;
-    lbBody.appendChild(tr);
-  });
-}
-document.getElementById('closeLb').addEventListener('click', ()=>overlay.style.display='none');
+            // player body with glow
+            ctx.save();
+            ctx.fillStyle = 'rgba(255,255,255,0.06)';
+            drawRoundedRect(player.x - 2, player.y - 2, player.w + 4, player.h + 4, 8);
+            ctx.fillStyle = '#8b5cf6';
+            ctx.shadowColor = '#8b5cf6';
+            ctx.shadowBlur = 20;
+            drawRoundedRect(player.x, player.y, player.w, player.h, 8);
+            ctx.restore();
 
-openLbBtn.addEventListener('click', ()=> {
-  if(!currentUser) { showAuthPrompt(); if(!currentUser) return; }
-  showLeaderboard();
-});
+            // obstacles (blocks) with purple top
+            for (const o of obstacles) {
+                // shadow under block
+                ctx.save();
+                ctx.globalAlpha = 0.12;
+                ctx.fillStyle = '#000';
+                ctx.fillRect(o.x + 6, o.y + 8, o.w, o.h);
+                ctx.restore();
+                // block body
+                ctx.save();
+                ctx.fillStyle = '#111217';
+                ctx.fillRect(o.x, o.y, o.w, o.h);
+                // purple top highlight
+                ctx.fillStyle = '#8b5cf6';
+                ctx.fillRect(o.x + 6, o.y + 6, Math.max(4, o.w - 12), 6);
+                ctx.restore();
+            }
 
-/* Export live stats */
-exportBtn.addEventListener('click', ()=> {
-  if(!currentUser) { showAuthPrompt(); if(!currentUser) return; }
-  const payload = { user: currentUser.name, discord: currentUser.discord, score: score, high: currentUser.high || 0, speed: speed.toFixed(2), ts: Date.now() };
-  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${currentUser.name}_paradiserun_stats.json`; a.click();
-  URL.revokeObjectURL(a.href);
-});
+            // scoreboard overlay (redundant)
+            ctx.fillStyle = 'rgba(0,0,0,0.18)';
+            ctx.fillRect(12, 12, 148, 56);
+            ctx.fillStyle = '#fff';
+            ctx.font = '700 16px system-ui';
+            ctx.fillText('Score: ' + Math.floor(score), 22, 34);
+            ctx.fillStyle = '#9aa0b4';
+            ctx.font = '600 12px system-ui';
+            ctx.fillText('High: ' + high, 22, 52);
 
-/* small helper and init */
-function escapeHtml(s){ if(!s) return ''; return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+            // if not running show overlay
+            if (!running) {
+                // show game over overlay in DOM
+                gameOverEl.style.display = 'flex';
+            } else {
+                gameOverEl.style.display = 'none';
+            }
+        }
 
-/* show auth immediately on load for first time */
-(function init(){
-  // quick detect existing user to auto-prompt login
-  const knownUserKeys = Object.keys(localStorage).filter(k=>k.startsWith('pr_user_'));
-  if(knownUserKeys.length===0){
-    // no users, force signup flow
-    localStorage.setItem('pr_auth_mode','signup');
-  } else {
-    localStorage.setItem('pr_auth_mode','login');
-  }
-  showAuthPrompt();
-  // set huge canvas pixel scaling for crispness
-  resizeCanvas();
-})();
-</script>
+        /* Firebase-based Leaderboard */
+        let currentUser = null;
+        let activeLeaderboardTab = 'all-time';
+
+        async function endGame() {
+            if (!firebase.auth().currentUser) {
+                showAuthPrompt();
+                return;
+            }
+
+            const user = firebase.auth().currentUser;
+            const userRef = db.collection('users').doc(user.uid);
+            const now = firebase.firestore.Timestamp.now();
+
+            try {
+                // Fetch user data to check for existing high score and discord tag
+                const userDoc = await userRef.get();
+                let existingData = {};
+                if (userDoc.exists) {
+                    existingData = userDoc.data();
+                }
+
+                if (score > (existingData.highScore || 0)) {
+                    await userRef.set({
+                        username: user.displayName,
+                        discord: existingData.discord || '',
+                        highScore: score,
+                        lastUpdated: now
+                    }, {
+                        merge: true
+                    });
+                }
+
+                // Add score to runs collection for weekly/monthly boards
+                await db.collection('runs').add({
+                    userId: user.uid,
+                    username: user.displayName,
+                    discord: existingData.discord || '',
+                    score: score,
+                    timestamp: now
+                });
+
+                high = Math.max(high, score);
+                hiEl.textContent = high;
+                overlayHigh.textContent = high;
+                goText.innerText = `Game Over — Score: ${score}`;
+                gameOverEl.style.display = 'flex';
+
+            } catch (error) {
+                console.error("Error saving score:", error);
+                alert('Failed to save score. Please try again.');
+            }
+        }
+
+        async function showLeaderboard() {
+            if (!firebase.auth().currentUser) {
+                showAuthPrompt();
+                return;
+            }
+
+            overlay.style.display = 'flex';
+            lbBody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Loading...</td></tr>';
+
+            try {
+                let querySnapshot;
+
+                if (activeLeaderboardTab === 'all-time') {
+                    // Optimized query for all-time leaderboard
+                    querySnapshot = await db.collection('users').orderBy('highScore', 'desc').limit(100).get();
+                    lbBody.innerHTML = '';
+                    if (querySnapshot.empty) {
+                        lbBody.innerHTML = '<tr><td colspan="4" style="text-align:center;">No scores yet!</td></tr>';
+                    }
+                    querySnapshot.forEach((doc, i) => {
+                        const data = doc.data();
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `<td style="width:50px">${i + 1}</td><td>${escapeHtml(data.username)}</td><td>${escapeHtml(data.discord)}</td><td>${data.highScore}</td>`;
+                        lbBody.appendChild(tr);
+                    });
+                } else {
+                    // Query for weekly/monthly runs
+                    let startDate;
+                    const now = new Date();
+                    if (activeLeaderboardTab === 'weekly') {
+                        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay());
+                    } else if (activeLeaderboardTab === 'monthly') {
+                        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+                    }
+                    querySnapshot = await db.collection('runs').where('timestamp', '>=', startDate).orderBy('score', 'desc').get();
+
+                    const scores = {};
+                    querySnapshot.forEach(doc => {
+                        const data = doc.data();
+                        const userId = data.userId;
+                        if (!scores[userId] || data.score > scores[userId].score) {
+                            scores[userId] = {
+                                username: data.username,
+                                discord: data.discord,
+                                score: data.score
+                            };
+                        }
+                    });
+
+                    const sortedScores = Object.values(scores).sort((a, b) => b.score - a.score).slice(0, 100);
+                    lbBody.innerHTML = '';
+                    if (sortedScores.length === 0) {
+                        lbBody.innerHTML = '<tr><td colspan="4" style="text-align:center;">No scores yet!</td></tr>';
+                    }
+                    sortedScores.forEach((r, i) => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `<td style="width:50px">${i + 1}</td><td>${escapeHtml(r.username)}</td><td>${escapeHtml(r.discord)}</td><td>${r.score}</td>`;
+                        lbBody.appendChild(tr);
+                    });
+                }
+
+            } catch (error) {
+                console.error("Error fetching leaderboard:", error);
+                lbBody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:red;">Error loading leaderboard.</td></tr>';
+            }
+        }
+
+        document.getElementById('tab-weekly').addEventListener('click', () => {
+            setActiveTab('weekly');
+        });
+        document.getElementById('tab-monthly').addEventListener('click', () => {
+            setActiveTab('monthly');
+        });
+        document.getElementById('tab-all-time').addEventListener('click', () => {
+            setActiveTab('all-time');
+        });
+
+        function setActiveTab(tab) {
+            activeLeaderboardTab = tab;
+            document.querySelectorAll('.leaderboard-tabs button').forEach(btn => {
+                btn.classList.remove('active-tab');
+            });
+            document.getElementById(`tab-${tab}`).classList.add('active-tab');
+            showLeaderboard();
+        }
+
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                db.collection('users').doc(user.uid).get().then(doc => {
+                    if (doc.exists) {
+                        currentUser = {
+                            name: doc.data().username,
+                            discord: doc.data().discord,
+                            high: doc.data().highScore || 0
+                        };
+                        hiEl.textContent = currentUser.high;
+                        overlayHigh.textContent = currentUser.high;
+                    }
+                });
+            } else {
+                currentUser = null;
+                hiEl.textContent = '0';
+                overlayHigh.textContent = '0';
+            }
+        });
+
+        /* Firebase Auth UI Flow */
+        function showAuthPrompt() {
+            const mode = prompt('Type "login" or "signup" to continue.');
+            if (mode === 'signup') {
+                const email = prompt('Sign Up — Email:');
+                const pass = prompt('Choose a password (min 6 chars):');
+                const username = prompt('Choose a username:');
+                const discord = prompt('Discord username (optional):');
+                if (!email || !pass || !username) {
+                    alert('Email, password, and username are required.');
+                    return showAuthPrompt();
+                }
+
+                firebase.auth().createUserWithEmailAndPassword(email, pass)
+                    .then((userCredential) => {
+                        const user = userCredential.user;
+                        return user.updateProfile({
+                                displayName: username
+                            })
+                            .then(() => db.collection('users').doc(user.uid).set({
+                                username,
+                                discord,
+                                highScore: 0
+                            }))
+                            .then(() => alert('Account created! You are now logged in.'));
+                    })
+                    .catch((error) => {
+                        alert(error.message);
+                        showAuthPrompt();
+                    });
+            } else if (mode === 'login') {
+                const email = prompt('Login — Email:');
+                const pass = prompt('Password:');
+                if (!email || !pass) {
+                    alert('Email and password are required.');
+                    return showAuthPrompt();
+                }
+                firebase.auth().signInWithEmailAndPassword(email, pass)
+                    .then(() => alert('Successfully logged in!'))
+                    .catch((error) => {
+                        alert(error.message);
+                        showAuthPrompt();
+                    });
+            }
+        }
+
+        // Overwrite the original event listeners and functions
+        document.getElementById('start').addEventListener('click', () => {
+            if (!firebase.auth().currentUser) {
+                showAuthPrompt();
+                return;
+            }
+            start(true);
+        });
+
+        playAgainBtn.addEventListener('click', () => {
+            gameOverEl.style.display = 'none';
+            start(true);
+        });
+        goLbBtn.addEventListener('click', () => {
+            gameOverEl.style.display = 'none';
+            showLeaderboard();
+        });
+        document.getElementById('closeLb').addEventListener('click', () => overlay.style.display = 'none');
+
+        openLbBtn.addEventListener('click', () => {
+            if (!firebase.auth().currentUser) {
+                showAuthPrompt();
+                return;
+            }
+            showLeaderboard();
+        });
+
+        logoutBtn.addEventListener('click', () => {
+            if (confirm('Logout?')) {
+                firebase.auth().signOut().then(() => {
+                    alert('Logged out');
+                    currentUser = null;
+                }).catch(error => {
+                    console.error('Logout error:', error);
+                });
+            }
+        });
+
+        exportBtn.addEventListener('click', () => {
+            if (!currentUser) {
+                alert('Please log in to export stats.');
+                return;
+            }
+            const payload = {
+                user: currentUser.name,
+                discord: currentUser.discord,
+                score: score,
+                high: currentUser.high || 0,
+                speed: speed.toFixed(2),
+                ts: Date.now()
+            };
+            const blob = new Blob([JSON.stringify(payload, null, 2)], {
+                type: 'application/json'
+            });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `${currentUser.name}_paradiserun_stats.json`;
+            a.click();
+            URL.revokeObjectURL(a.href);
+        });
+
+        function escapeHtml(s) {
+            if (!s) return '';
+            return s.replace(/[&<>"']/g, c => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;'
+            }[c]));
+        }
+
+        resizeCanvas();
+    </script>
 </body>
 </html>
