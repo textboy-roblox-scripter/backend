@@ -1,36 +1,118 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Paradise Ticket</title>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Ticket - Paradise</title>
   <style>
-    body { font-family: Arial, sans-serif; background:#0d0d0d; color:white; padding:20px; }
-    #messages { max-height: 400px; overflow-y: auto; border: 1px solid #444; padding: 10px; margin-bottom: 10px; }
-    .message { margin-bottom: 8px; padding: 6px; border-radius: 6px; }
-    .user { background: #1e1e2f; }
-    .staff { background: #2e1e3f; }
-    #messageInput { width: 80%; padding: 6px; }
-    button { background:#6b46c1; color:white; border:none; padding:8px 12px; border-radius:6px; cursor:pointer; }
-    button:hover { background:#805ad5; }
-    #closeTicket { background:#c53030; margin-top:10px; display:none; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: radial-gradient(circle at top, #1a1a1a, #000);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    header {
+      background: linear-gradient(90deg,#7c3aed,#9333ea);
+      padding: 15px;
+      text-align: center;
+      font-size: 20px;
+      font-weight: bold;
+      letter-spacing: 1px;
+      box-shadow: 0 0 15px rgba(147,51,234,0.7);
+    }
+
+    #messages {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .msg {
+      max-width: 70%;
+      padding: 10px 14px;
+      border-radius: 12px;
+      font-size: 15px;
+      word-wrap: break-word;
+    }
+
+    .msg.user {
+      align-self: flex-end;
+      background: #7c3aed;
+      box-shadow: 0 0 8px rgba(124,58,237,0.7);
+    }
+
+    .msg.staff {
+      align-self: flex-start;
+      background: #222;
+      border: 1px solid #555;
+    }
+
+    .meta {
+      font-size: 11px;
+      opacity: 0.7;
+      margin-top: 3px;
+    }
+
+    #inputArea {
+      display: flex;
+      padding: 12px;
+      border-top: 1px solid #333;
+      background: #111;
+    }
+
+    #messageInput {
+      flex: 1;
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+      outline: none;
+      background: #222;
+      color: #fff;
+      margin-right: 8px;
+    }
+
+    button {
+      background: linear-gradient(90deg,#7c3aed,#9333ea);
+      border: none;
+      border-radius: 8px;
+      color: white;
+      font-size: 14px;
+      padding: 10px 16px;
+      cursor: pointer;
+      transition: 0.2s;
+      box-shadow: 0 0 12px rgba(147,51,234,0.5);
+    }
+    button:hover { transform: scale(1.05); }
+
+    #closeTicketBtn {
+      background: #dc2626;
+      margin-left: 10px;
+      box-shadow: 0 0 12px rgba(220,38,38,0.5);
+    }
   </style>
 </head>
 <body>
-  <h2>Support Ticket</h2>
+  <header>Paradise Ticket</header>
 
   <div id="messages"></div>
 
-  <input type="text" id="messageInput" placeholder="Type your message...">
-  <button id="sendBtn">Send</button>
+  <div id="inputArea">
+    <input type="text" id="messageInput" placeholder="Type your message..." />
+    <button id="sendBtn">Send</button>
+    <button id="closeTicketBtn" style="display:none;">Close Ticket</button>
+  </div>
 
-  <button id="closeTicket">Close Ticket</button>
-
-  <script type="module">
-    // --- Firebase Config (Your Project) ---
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script>
     const firebaseConfig = {
       apiKey: "AIzaSyAWqZClZUwdAoiRXNlWDWFdx2ggrmxdWSE",
       authDomain: "paradise-community.firebaseapp.com",
@@ -40,88 +122,62 @@
       messagingSenderId: "967977031344",
       appId: "1:967977031344:web:6408921ddbd62559f84d75"
     };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
-    // Init
-    const app = firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.firestore();
-
-    // Hardcoded staff usernames
-    const staffUsers = ["Admin123", "HelperBot", "StaffUser"];
-
-    // Ticket ID from URL query (e.g. ?Id=abc123)
     const urlParams = new URLSearchParams(window.location.search);
-    const ticketId = urlParams.get("Id") || "ticket_1";
+    const ticketId = urlParams.get("id");
+    const messagesRef = db.ref("tickets/"+ticketId+"/messages");
+    const ticketRef = db.ref("tickets/"+ticketId);
 
-    const messagesDiv = document.getElementById("messages");
-    const sendBtn = document.getElementById("sendBtn");
-    const messageInput = document.getElementById("messageInput");
-    const closeBtn = document.getElementById("closeTicket");
+    // Mock: current user role (replace with auth later)
+    const currentUser = { name: "GuestUser", role: "user" };
+    if(currentUser.role === "staff") {
+      document.getElementById("closeTicketBtn").style.display = "inline-block";
+    }
 
-    let currentUser = null;
-    let ticketClosed = false;
-
-    // Fake login for demo (replace with Google/Email auth later)
-    auth.signInAnonymously().then(() => {
-      currentUser = { displayName: "GuestUser" };
+    // Render messages
+    messagesRef.on("child_added", snap => {
+      const msg = snap.val();
+      addMessage(msg.sender, msg.text, msg.timestamp, msg.role);
     });
 
-    // Watch ticket status
-    db.collection("tickets").doc(ticketId)
-      .onSnapshot(doc => {
-        if (doc.exists) {
-          const data = doc.data();
-          if (data.status === "closed") {
-            ticketClosed = true;
-            sendBtn.disabled = true;
-            messageInput.disabled = true;
-            closeBtn.style.display = "none";
-          }
-        }
-      });
-
-    // Load messages
-    db.collection("tickets").doc(ticketId).collection("messages")
-      .orderBy("timestamp")
-      .onSnapshot(snapshot => {
-        messagesDiv.innerHTML = "";
-        snapshot.forEach(doc => {
-          const msg = doc.data();
-          const role = staffUsers.includes(msg.username) ? "staff" : "user";
-          const div = document.createElement("div");
-          div.className = `message ${role}`;
-          div.innerHTML = `<strong>${msg.username}:</strong> ${msg.text}`;
-          messagesDiv.appendChild(div);
-        });
-      });
+    function addMessage(sender,text,time,role){
+      const div = document.createElement("div");
+      div.className = "msg " + (role==="staff"?"staff":"user");
+      div.innerHTML = `<b>${sender}</b><br>${text}<div class="meta">${new Date(time).toLocaleTimeString()}</div>`;
+      document.getElementById("messages").appendChild(div);
+      document.getElementById("messages").scrollTop = document.getElementById("messages").scrollHeight;
+    }
 
     // Send message
-    sendBtn.addEventListener("click", () => {
-      const text = messageInput.value.trim();
-      if (text && currentUser && !ticketClosed) {
-        db.collection("tickets").doc(ticketId).collection("messages").add({
-          username: currentUser.displayName,
-          text,
-          timestamp: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        messageInput.value = "";
-      }
-    });
-
-    // Show close ticket button if staff
-    auth.onAuthStateChanged(user => {
-      if (user) {
-        const uname = user.displayName || "GuestUser";
-        if (staffUsers.includes(uname)) {
-          closeBtn.style.display = "block";
-        }
-      }
+    document.getElementById("sendBtn").addEventListener("click", ()=>{
+      const text = document.getElementById("messageInput").value.trim();
+      if(!text) return;
+      const msg = {
+        sender: currentUser.name,
+        role: currentUser.role,
+        text: text,
+        timestamp: Date.now()
+      };
+      messagesRef.push(msg);
+      ticketRef.update({ lastUpdated: Date.now() });
+      document.getElementById("messageInput").value = "";
     });
 
     // Close ticket
-    closeBtn.addEventListener("click", () => {
-      db.collection("tickets").doc(ticketId).set({ status: "closed" }, { merge: true });
-      alert("Ticket closed by staff!");
+    document.getElementById("closeTicketBtn").addEventListener("click", ()=>{
+      ticketRef.update({ status: "closed" });
+      alert("Ticket closed!");
+    });
+
+    // Disable input if closed
+    ticketRef.on("value", snap=>{
+      const t = snap.val();
+      if(t && t.status === "closed"){
+        document.getElementById("messageInput").disabled = true;
+        document.getElementById("sendBtn").disabled = true;
+      }
     });
   </script>
 </body>
