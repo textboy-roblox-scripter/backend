@@ -1,74 +1,83 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Staff Tickets</title>
-<style>
-body{font-family:sans-serif;background:#050614;color:white;padding:20px;}
-.ticket{padding:12px;margin:8px 0;border:1px solid #7c3aed;border-radius:8px;display:flex;justify-content:space-between;align-items:center;gap:10px;}
-button{padding:6px 12px;background:#7c3aed;border:none;color:white;border-radius:6px;cursor:pointer;}
-</style>
+  <meta charset="UTF-8">
+  <title>Paradise Staff Dashboard</title>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getDatabase, ref, onValue, update } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAWqZClZUwdAoiRXNlWDWFdx2ggrmxdWSE",
+      authDomain: "paradise-community.firebaseapp.com",
+      databaseURL: "https://paradise-community-default-rtdb.firebaseio.com/",
+      projectId: "paradise-community",
+      storageBucket: "paradise-community.firebasestorage.app",
+      messagingSenderId: "967977031344",
+      appId: "1:967977031344:web:6408921ddbd62559f84d75"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    // Staff login
+    let staffName = localStorage.getItem("staffName");
+    if (!staffName) {
+      staffName = prompt("Enter your staff username:");
+      localStorage.setItem("staffName", staffName);
+    }
+
+    // Listen to tickets
+    const ticketsRef = ref(db, "tickets/");
+    onValue(ticketsRef, snapshot => {
+      const data = snapshot.val() || {};
+      renderTickets(data);
+    });
+
+    async function closeTicket(ticketId) {
+      const ticketRef = ref(db, "tickets/" + ticketId);
+      await update(ticketRef, {
+        status: "closed",
+        closedBy: staffName,
+        closedAt: Date.now()
+      });
+
+      // send to discord via Netlify function
+      fetch("/.netlify/functions/log-to-discord", {
+        method: "POST",
+        body: JSON.stringify({
+          content: `🔒 Ticket ${ticketId} closed by **${staffName}**`
+        })
+      });
+    }
+
+    function renderTickets(data) {
+      const list = document.getElementById("tickets");
+      list.innerHTML = "";
+      Object.entries(data).forEach(([id, ticket]) => {
+        const li = document.createElement("li");
+        li.innerHTML = `
+          <b>${id}</b> - ${ticket.status || "open"} by ${ticket.user || "Anon"} 
+          ${ticket.closedBy ? "(Closed by " + ticket.closedBy + ")" : ""}
+          <button onclick="closeTicket('${id}')">Close</button>
+          <a href="/ticket.html?Id=${id}" target="_blank">Open</a>
+        `;
+        list.appendChild(li);
+      });
+    }
+
+    window.closeTicket = closeTicket;
+  </script>
+  <style>
+    body { background:#000; color:white; font-family:sans-serif; padding:20px; }
+    h1 { color:#a78bfa; text-shadow:0 0 10px #9333ea; }
+    li { margin:10px 0; padding:10px; background:#111; border-radius:8px; }
+    button { margin-left:10px; background:#9333ea; color:white; border:none; padding:6px 10px; border-radius:6px; cursor:pointer; }
+    a { margin-left:10px; color:#7c3aed; }
+  </style>
 </head>
 <body>
-<h1>Staff Ticket Dashboard</h1>
-<div id="ticketList"></div>
-
-<!-- Firebase -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-<script>
-// Firebase config
-const firebaseConfig = {
-    apiKey: "AIzaSyAWqZClZUwdAoiRXNlWDWFdx2ggrmxdWSE",
-    authDomain: "paradise-community.firebaseapp.com",
-    databaseURL: "https://paradise-community-default-rtdb.firebaseio.com/",
-    projectId: "paradise-community",
-    storageBucket: "paradise-community.firebasestorage.app",
-    messagingSenderId: "967977031344",
-    appId: "1:967977031344:web:6408921ddbd62559f84d75"
-};
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
-
-// Webhook URL
-const WEBHOOK_URL = "https://webhook.lewisakura.moe/api/webhooks/1406914816009961492/n2Sa2PTKf6pX5tFMBOsUQf1XYCiGYQi53BWJjyzLiwtB1B1ecAPifb3kWjHY-U8Ph2PE";
-
-const ticketList = document.getElementById('ticketList');
-
-// Listen for tickets
-db.ref('tickets').on('value', snapshot=>{
-    const tickets = snapshot.val() || {};
-    ticketList.innerHTML = '';
-    for(const [id, t] of Object.entries(tickets)){
-        if(t.status==='open'){
-            const div = document.createElement('div');
-            div.className='ticket';
-            div.innerHTML=`<span>Ticket ID: <b>${id}</b></span>
-            <button onclick="openTicket('${id}')">Go to Ticket</button>
-            <button onclick="closeTicket('${id}')">Close</button>`;
-            ticketList.appendChild(div);
-        }
-    }
-});
-
-// Open ticket
-function openTicket(id){
-    window.open(`ticket.html?id=${id}`,'_blank');
-}
-
-// Close ticket
-function closeTicket(id){
-    db.ref('tickets/'+id).update({status:'closed'});
-    const ticketLink = `https://paradise-community.netlify.app/ticket.html?id=${id}`;
-    fetch(WEBHOOK_URL, {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({
-            content: `ticket manually closed by staff.\n${ticketLink}`
-        })
-    }).catch(err=>console.error("Webhook error:",err));
-}
-</script>
+  <h1>Paradise Staff Dashboard</h1>
+  <ul id="tickets"></ul>
 </body>
 </html>
