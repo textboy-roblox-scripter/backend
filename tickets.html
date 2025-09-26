@@ -64,8 +64,8 @@
 
       const snapshot = await db.ref('tickets').once('value');
       const tickets = snapshot.val() || {};
-      if(Object.keys(tickets).length >= 10){
-        alert("Maximum of 10 tickets open at a time.");
+      if(Object.keys(tickets).length >= 100){
+        alert("Maximum of 100 tickets open at a time.");
         return;
       }
 
