@@ -127,10 +127,13 @@
 
     const urlParams = new URLSearchParams(window.location.search);
     const ticketId = urlParams.get("id");
-    const messagesRef = db.ref("tickets/"+ticketId+"/messages");
     const ticketRef = db.ref("tickets/"+ticketId);
+    const messagesRef = db.ref("tickets/"+ticketId+"/messages");
 
-    // Mock: current user role (replace with auth later)
+    // ⚡ Replace with your protected webhook (via Netlify function ideally)
+    const webhookUrl = "https://discord.com/api/webhooks/1419598770211127358/XwtQCk1Dl6wDuhG2CFBWwJWAIFkcnuyVFXdkgRY8jQpIOMQDpRwT8p4zxfO0Aj6XBFOz";
+
+    // Mock current user
     const currentUser = { name: "GuestUser", role: "user" };
     if(currentUser.role === "staff") {
       document.getElementById("closeTicketBtn").style.display = "inline-block";
@@ -168,15 +171,34 @@
     // Close ticket
     document.getElementById("closeTicketBtn").addEventListener("click", ()=>{
       ticketRef.update({ status: "closed" });
-      alert("Ticket closed!");
+      alert("Ticket closed! It will auto-delete soon.");
     });
 
-    // Disable input if closed
+    // Watch ticket status
     ticketRef.on("value", snap=>{
       const t = snap.val();
-      if(t && t.status === "closed"){
+      if(!t) return; // already deleted
+      if(t.status === "closed"){
+        // Disable input immediately
         document.getElementById("messageInput").disabled = true;
         document.getElementById("sendBtn").disabled = true;
+
+        // Delete ticket after 10s
+        setTimeout(()=>{
+          ticketRef.remove();
+
+          // Send webhook log
+          fetch(webhookUrl, {
+            method: "POST",
+            headers: {"Content-Type":"application/json"},
+            body: JSON.stringify({
+              content: `🗑️ Ticket ${ticketId} has been deleted.`
+            })
+          });
+
+          alert("This ticket has been deleted.");
+          window.location.href = "tickets.html";
+        },10000);
       }
     });
   </script>
